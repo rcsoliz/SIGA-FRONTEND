@@ -1,0 +1,141 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { RUTA_INICIO_POR_ROL } from '@/router'
+import { ApiError } from '@/api/client'
+import BaseInput from '@/components/ui/BaseInput.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import AlertBanner from '@/components/ui/AlertBanner.vue'
+
+const router = useRouter()
+const auth = useAuthStore()
+
+const email = ref('')
+const password = ref('')
+const cargando = ref(false)
+const errorMensaje = ref<string | null>(null)
+
+async function enviar() {
+  errorMensaje.value = null
+  cargando.value = true
+  try {
+    await auth.iniciarSesion({ email: email.value, password: password.value })
+    await router.push(RUTA_INICIO_POR_ROL[auth.rol!])
+  } catch (error) {
+    errorMensaje.value = error instanceof ApiError ? error.message : 'Ocurrió un error inesperado.'
+  } finally {
+    cargando.value = false
+  }
+}
+</script>
+
+<template>
+  <!-- Mobile (<768px) — fiel a docs/stitch-html/01-login-mobile.html: tarjeta centrada -->
+  <div
+    class="md:hidden min-h-screen bg-background text-on-surface flex items-center justify-center font-body-md antialiased p-margin-mobile"
+  >
+    <main
+      class="w-full max-w-sm bg-surface-container-lowest rounded-xl shadow-sm border border-surface-variant p-stack-lg flex flex-col gap-stack-lg"
+    >
+      <header class="flex flex-col items-center text-center gap-base">
+        <div
+          class="h-16 w-16 bg-primary-container rounded-full flex items-center justify-center mb-stack-sm shadow-sm shadow-primary/5"
+        >
+          <span class="material-symbols-outlined text-[32px] text-on-primary-container filled">pets</span>
+        </div>
+        <h1 class="font-headline-lg text-headline-lg text-primary">SIGA</h1>
+        <p class="font-body-md text-body-md text-on-surface-variant">Sistema de Registro y Captación de Ganado</p>
+      </header>
+
+      <form class="flex flex-col gap-stack-md" @submit.prevent="enviar">
+        <BaseInput
+          v-model="email"
+          type="email"
+          label="Correo Electrónico"
+          icon="mail"
+          placeholder="usuario@siga.com"
+          autocomplete="username"
+          required
+        />
+        <BaseInput
+          v-model="password"
+          type="password"
+          label="Contraseña"
+          icon="lock"
+          placeholder="••••••••"
+          autocomplete="current-password"
+          required
+        />
+
+        <div class="flex flex-col gap-stack-sm mt-base">
+          <BaseButton type="submit" icon="login" :loading="cargando">Iniciar Sesión</BaseButton>
+          <AlertBanner v-if="errorMensaje" variant="error">{{ errorMensaje }}</AlertBanner>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <!-- Desktop (>=768px) — fiel a docs/stitch-html/01-login-desktop.html: panel dividido -->
+  <div class="hidden md:flex min-h-screen bg-background antialiased">
+    <div class="w-1/2 relative bg-gradient-to-br from-tertiary via-tertiary-container to-primary flex-col justify-between">
+      <div class="absolute inset-0 bg-black/30" />
+      <div class="relative z-10 p-12 h-full flex flex-col justify-between">
+        <h1 class="font-headline-lg text-headline-lg text-white tracking-tight flex items-center gap-2">
+          <span class="material-symbols-outlined text-3xl filled">agriculture</span>
+          SIGA
+        </h1>
+        <div class="max-w-md">
+          <h2 class="text-white font-headline-md text-headline-md mb-stack-sm">
+            Sistema de Registro y Captación de Ganado
+          </h2>
+          <p class="text-white/80 font-body-lg text-body-lg">
+            Plataforma profesional para la gestión de datos en campo, garantizando precisión y trazabilidad en
+            entornos agrícolas.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="w-1/2 bg-surface flex flex-col justify-center items-center p-16 relative">
+      <div class="w-full max-w-[400px]">
+        <div class="mb-stack-lg">
+          <h2 class="font-headline-lg text-headline-lg text-on-surface mb-2">Iniciar Sesión</h2>
+          <p class="font-body-md text-body-md text-on-surface-variant">
+            Ingrese sus credenciales para acceder al sistema
+          </p>
+        </div>
+
+        <AlertBanner v-if="errorMensaje" variant="error" class="mb-stack-md">{{ errorMensaje }}</AlertBanner>
+
+        <form class="flex flex-col gap-stack-md" @submit.prevent="enviar">
+          <BaseInput
+            v-model="email"
+            type="email"
+            label="Correo Electrónico"
+            icon="mail"
+            placeholder="ejemplo@correo.com"
+            autocomplete="username"
+            required
+          />
+          <BaseInput
+            v-model="password"
+            type="password"
+            label="Contraseña"
+            icon="lock"
+            placeholder="Ingrese su contraseña"
+            autocomplete="current-password"
+            required
+          />
+          <div class="pt-stack-sm">
+            <BaseButton type="submit" pill :loading="cargando">Iniciar Sesión</BaseButton>
+          </div>
+        </form>
+      </div>
+
+      <div class="absolute bottom-8 text-center w-full">
+        <span class="font-label-md text-label-md text-on-surface-variant">v1.0.0</span>
+      </div>
+    </div>
+  </div>
+</template>
