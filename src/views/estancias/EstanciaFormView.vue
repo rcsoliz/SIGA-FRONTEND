@@ -6,11 +6,15 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import FormField from '@/components/ui/FormField.vue'
 import GpsCapture from '@/components/ui/GpsCapture.vue'
+import SkeletonForm from '@/components/ui/SkeletonForm.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import { ApiError } from '@/api/client'
 import * as estanciasApi from '@/api/estancias'
+import { useToast } from '@/composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
+const { mostrar } = useToast()
 
 const id = computed(() => route.params.id as string | undefined)
 const esEdicion = computed(() => Boolean(id.value))
@@ -106,6 +110,7 @@ async function guardar() {
         fechaCreacionLocal: new Date().toISOString(),
       })
     }
+    mostrar(esEdicion.value ? 'Estancia actualizada correctamente.' : 'Estancia creada correctamente.')
     await router.push({ name: 'estancias' })
   } catch (error) {
     errorMensaje.value = error instanceof ApiError ? error.message : 'Ocurrió un error inesperado.'
@@ -124,7 +129,7 @@ function cancelar() {
     <div class="p-margin-mobile md:p-6 lg:p-8 pb-stack-lg md:max-w-5xl md:mx-auto w-full">
       <div class="mb-stack-lg md:mb-8">
         <div class="flex items-center gap-2 text-primary md:hidden mb-1">
-          <span class="material-symbols-outlined filled">agriculture</span>
+          <AppIcon name="home_work" :size="18" />
           <span class="text-label-md font-label-md tracking-widest uppercase">
             {{ esEdicion ? 'Editar Registro' : 'Nuevo Registro' }}
           </span>
@@ -139,7 +144,7 @@ function cancelar() {
 
       <AlertBanner v-if="errorMensaje" variant="error" class="mb-stack-md">{{ errorMensaje }}</AlertBanner>
 
-      <div v-if="cargandoDetalle" class="h-96 rounded-xl bg-surface-container-lowest border border-outline-variant animate-pulse" />
+      <SkeletonForm v-if="cargandoDetalle" :campos="9" />
 
       <form
         v-else

@@ -7,7 +7,9 @@ import AppShell from '@/components/layout/AppShell.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import FormField from '@/components/ui/FormField.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 import { ApiError } from '@/api/client'
 import * as captacionesApi from '@/api/captaciones'
 import { BITACORAS, type TipoBitacora } from '@/config/bitacoras'
@@ -20,6 +22,7 @@ const route = useRoute()
 const captacionId = computed(() => route.params.captacionId as string)
 
 const auth = useAuthStore()
+const { mostrar } = useToast()
 const puedeCrear = computed(() => (config.value.soloCaptador ? auth.rol === 'Captador' : true))
 
 const captacion = ref<CaptacionGanadoDto | null>(null)
@@ -73,6 +76,7 @@ async function registrar() {
     const payload = config.value.construirPayload(form, captacionId.value, new Date().toISOString())
     const creado = await config.value.crear(payload)
     historial.value = [creado, ...historial.value]
+    mostrar('Registro guardado correctamente.')
     inicializarFormulario()
   } catch (error) {
     errorForm.value = error instanceof ApiError ? error.message : 'Ocurrió un error inesperado.'
@@ -90,7 +94,7 @@ async function registrar() {
         :to="{ name: 'captaciones-reporte', params: { id: captacion.id } }"
         class="inline-flex items-center gap-1 text-primary font-label-md text-label-md w-fit"
       >
-        <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+        <AppIcon name="arrow_back" :size="18" />
         Volver al Reporte
       </RouterLink>
 
@@ -110,7 +114,7 @@ async function registrar() {
         <div class="lg:col-span-4 flex flex-col gap-stack-md">
           <div v-if="puedeCrear" class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 p-stack-md">
             <h3 class="font-headline-md text-headline-md mb-stack-md flex items-center gap-2 text-primary">
-              <span class="material-symbols-outlined">add_circle</span>
+              <AppIcon name="add_circle" :size="20" />
               Nuevo Registro
             </h3>
             <form class="flex flex-col gap-gutter-mobile" @submit.prevent="registrar">
@@ -137,7 +141,7 @@ async function registrar() {
         <!-- Historial -->
         <div class="lg:col-span-8 bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden">
           <div class="p-stack-md border-b border-outline-variant/30 flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary">history</span>
+            <AppIcon name="history" :size="20" class="text-primary" />
             <h3 class="font-headline-md text-headline-md text-on-background">Historial</h3>
           </div>
 

@@ -5,6 +5,9 @@ import { reactive, ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
+import SkeletonTable from '@/components/ui/SkeletonTable.vue'
+import SkeletonCard from '@/components/ui/SkeletonCard.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import * as dashboardApi from '@/api/dashboard'
 import { ApiError } from '@/api/client'
 import type { CaptadorRankingDto } from '@/types/dto'
@@ -37,7 +40,7 @@ function medalla(pos: number): string | null {
 
 <template>
   <AppShell>
-    <div class="p-stack-md md:p-stack-lg flex flex-col gap-stack-md max-w-7xl mx-auto w-full">
+    <div class="p-stack-md md:p-stack-lg flex flex-col gap-stack-md w-full">
       <div>
         <h1 class="font-headline-lg text-headline-lg text-on-surface">Ranking de Productividad</h1>
         <p class="font-body-md text-body-md text-on-surface-variant mt-1">Desempeño de los captadores de campo.</p>
@@ -51,15 +54,16 @@ function medalla(pos: number): string | null {
 
       <AlertBanner v-if="errorMensaje" variant="error">{{ errorMensaje }}</AlertBanner>
 
-      <div v-if="cargando" class="flex flex-col gap-gutter-mobile">
-        <div v-for="n in 4" :key="n" class="h-20 rounded-xl bg-surface-container-lowest border border-outline-variant animate-pulse" />
-      </div>
+      <template v-if="cargando">
+        <SkeletonTable class="hidden md:block" :columnas="6" />
+        <SkeletonCard class="md:hidden" :cantidad="4" />
+      </template>
 
       <div
         v-else-if="captadores.length === 0"
         class="flex flex-col items-center justify-center gap-stack-sm py-16 bg-surface-container-lowest rounded-xl border border-outline-variant"
       >
-        <span class="material-symbols-outlined text-[48px] text-outline-variant">leaderboard</span>
+        <AppIcon name="leaderboard" :size="44" class="text-outline-variant" />
         <p class="font-body-lg text-body-lg text-on-surface-variant">No hay datos de productividad para este rango.</p>
       </div>
 

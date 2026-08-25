@@ -3,10 +3,12 @@
 // "Sistema de Alimentación" en el mockup de Registro de Captación — botones
 // grandes y táctiles, en línea con el requisito base de "botones grandes
 // para fácil uso en campo".
+import AppIcon, { type NombreIcono } from './AppIcon.vue'
+
 defineProps<{
   modelValue: string | null
   label: string
-  options: { value: string; label: string; icon: string }[]
+  options: { value: string; label: string; icon: NombreIcono }[]
   columns?: string
 }>()
 
@@ -29,10 +31,10 @@ defineEmits<{ 'update:modelValue': [value: string] }>()
         "
         @click="$emit('update:modelValue', opt.value)"
       >
-        <span v-if="modelValue === opt.value" class="absolute top-1 right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-          <span class="material-symbols-outlined text-on-primary text-[14px]">check</span>
+        <span v-if="modelValue === opt.value" class="absolute top-1 right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-on-primary">
+          <AppIcon name="check" :size="14" />
         </span>
-        <span class="material-symbols-outlined text-3xl">{{ opt.icon }}</span>
+        <AppIcon :name="opt.icon" :size="28" />
         <span class="font-label-md text-label-md text-center leading-tight">{{ opt.label }}</span>
       </button>
     </div>

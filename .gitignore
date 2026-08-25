@@ -22,3 +22,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# AI coding-tool local config (skills, hooks, generated data) — not part of
+# the deployed app; PRODUCT.md/DESIGN.md at the repo root stay tracked
+# separately. Each of .claude/.agent/.agents/.gemini carries its own full
+# copy of the same third-party "impeccable" skill.
+.claude/
+.agent/
+.agents/
+.gemini/
+.codex/
+.impeccable/

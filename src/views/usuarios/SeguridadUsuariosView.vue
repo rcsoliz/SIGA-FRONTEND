@@ -5,6 +5,9 @@ import AppShell from '@/components/layout/AppShell.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import EstadoUsuarioBadge from '@/components/ui/EstadoUsuarioBadge.vue'
+import SkeletonTable from '@/components/ui/SkeletonTable.vue'
+import SkeletonCard from '@/components/ui/SkeletonCard.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import { ApiError } from '@/api/client'
 import * as usuariosApi from '@/api/usuarios'
 import { RolUsuarioLabels } from '@/types/enums'
@@ -41,7 +44,7 @@ function formatearFecha(iso: string): string {
 
 <template>
   <AppShell>
-    <div class="p-stack-md md:p-stack-lg flex flex-col gap-stack-lg max-w-7xl mx-auto w-full">
+    <div class="p-stack-md md:p-stack-lg flex flex-col gap-stack-lg w-full">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface-container-lowest p-stack-md rounded-xl shadow-sm border border-outline-variant">
         <div>
           <h1 class="font-headline-lg text-headline-lg text-on-surface font-bold">Seguridad y Usuarios</h1>
@@ -53,23 +56,24 @@ function formatearFecha(iso: string): string {
       </div>
 
       <div class="relative w-full sm:max-w-md">
-        <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">search</span>
+        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-outline flex"><AppIcon name="search" :size="20" /></span>
         <input
           v-model="busqueda"
           type="text"
           placeholder="Buscar por nombre o correo..."
-          class="w-full h-[48px] pl-12 pr-4 bg-surface-container-lowest border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-primary font-body-md text-body-md text-on-surface placeholder:text-outline-variant outline-none shadow-sm"
+          class="w-full h-[48px] pl-12 pr-4 bg-surface-container-lowest border border-outline-variant rounded-full focus:ring-2 focus:ring-primary focus:border-primary font-body-md text-body-md text-on-surface placeholder:text-outline-variant outline-none shadow-sm"
         />
       </div>
 
       <AlertBanner v-if="errorMensaje" variant="error">{{ errorMensaje }}</AlertBanner>
 
-      <div v-if="cargando" class="flex flex-col gap-gutter-mobile">
-        <div v-for="n in 4" :key="n" class="h-20 rounded-xl bg-surface-container-lowest border border-outline-variant animate-pulse" />
-      </div>
+      <template v-if="cargando">
+        <SkeletonTable class="hidden md:block" :columnas="6" />
+        <SkeletonCard class="md:hidden" :cantidad="4" />
+      </template>
 
       <div v-else-if="filtrados.length === 0" class="flex flex-col items-center justify-center gap-stack-sm py-16 bg-surface-container-lowest rounded-xl border border-outline-variant">
-        <span class="material-symbols-outlined text-[48px] text-outline-variant">group_off</span>
+        <AppIcon name="group_off" :size="44" class="text-outline-variant" />
         <p class="font-body-lg text-body-lg text-on-surface-variant">No se encontraron usuarios.</p>
       </div>
 

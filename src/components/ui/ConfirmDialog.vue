@@ -6,6 +6,7 @@
 // nuevo. Reutilizable para cualquier acción destructiva futura (revocar
 // dispositivo, quitar sector, etc. en la Etapa 6).
 import { nextTick, ref, watch } from 'vue'
+import AppIcon from './AppIcon.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -56,7 +57,7 @@ function onKeydown(event: KeyboardEvent) {
       >
         <div class="flex items-start gap-3">
           <div class="h-10 w-10 rounded-full bg-error-container flex items-center justify-center shrink-0">
-            <span class="material-symbols-outlined text-error">warning</span>
+            <AppIcon name="warning" :size="20" />
           </div>
           <div>
             <h2 class="font-headline-md text-headline-md text-on-surface">{{ title }}</h2>

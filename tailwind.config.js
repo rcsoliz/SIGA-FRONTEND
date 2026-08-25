@@ -1,66 +1,75 @@
 /** @type {import('tailwindcss').Config} */
-// Design tokens extraídos 1:1 de docs/stitch-html/01-login-desktop.html y
-// 01-login-mobile.html (SIGA-BACKEND repo) — paleta Material Design 3 ya
-// aprobada en el diseño. No modificar valores sin verificar contra un mockup
-// nuevo; ver design-reference/stitch-html para la fuente de cada token.
+// Los colores leen de variables CSS (definidas en src/assets/styles/theme.css)
+// en vez de valores hex fijos — así el modo oscuro se resuelve en un solo
+// lugar (ese archivo) sin tocar ningún componente. Ver theme.css para el
+// valor de cada --color-* en modo claro (:root) y oscuro (.dark).
+function withOpacity(variableName) {
+  return ({ opacityValue }) =>
+    opacityValue !== undefined ? `rgb(var(${variableName}) / ${opacityValue})` : `rgb(var(${variableName}))`
+}
+
+function colorVar(name) {
+  return withOpacity(`--color-${name}`)
+}
+
 export default {
   darkMode: 'class',
   content: ['./index.html', './src/**/*.{vue,js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
-        primary: '#0f5238',
-        'on-primary': '#ffffff',
-        'primary-container': '#2d6a4f',
-        'on-primary-container': '#a8e7c5',
-        'primary-fixed': '#b1f0ce',
-        'primary-fixed-dim': '#95d4b3',
-        'on-primary-fixed': '#002114',
-        'on-primary-fixed-variant': '#0e5138',
-        'inverse-primary': '#95d4b3',
+        primary: colorVar('primary'),
+        'on-primary': colorVar('on-primary'),
+        'primary-container': colorVar('primary-container'),
+        'on-primary-container': colorVar('on-primary-container'),
+        'primary-fixed': colorVar('primary-fixed'),
+        'primary-fixed-dim': colorVar('primary-fixed-dim'),
+        'on-primary-fixed': colorVar('on-primary-fixed'),
+        'on-primary-fixed-variant': colorVar('on-primary-fixed-variant'),
+        'inverse-primary': colorVar('inverse-primary'),
 
-        secondary: '#7a5649',
-        'on-secondary': '#ffffff',
-        'secondary-container': '#fdcdbc',
-        'on-secondary-container': '#795548',
-        'secondary-fixed': '#ffdbcf',
-        'secondary-fixed-dim': '#ebbcac',
-        'on-secondary-fixed': '#2e150b',
-        'on-secondary-fixed-variant': '#603f33',
+        secondary: colorVar('secondary'),
+        'on-secondary': colorVar('on-secondary'),
+        'secondary-container': colorVar('secondary-container'),
+        'on-secondary-container': colorVar('on-secondary-container'),
+        'secondary-fixed': colorVar('secondary-fixed'),
+        'secondary-fixed-dim': colorVar('secondary-fixed-dim'),
+        'on-secondary-fixed': colorVar('on-secondary-fixed'),
+        'on-secondary-fixed-variant': colorVar('on-secondary-fixed-variant'),
 
-        tertiary: '#274f3d',
-        'on-tertiary': '#ffffff',
-        'tertiary-container': '#3f6754',
-        'on-tertiary-container': '#b8e3cb',
-        'tertiary-fixed': '#c1ecd4',
-        'tertiary-fixed-dim': '#a5d0b9',
-        'on-tertiary-fixed': '#002114',
-        'on-tertiary-fixed-variant': '#274e3d',
+        tertiary: colorVar('tertiary'),
+        'on-tertiary': colorVar('on-tertiary'),
+        'tertiary-container': colorVar('tertiary-container'),
+        'on-tertiary-container': colorVar('on-tertiary-container'),
+        'tertiary-fixed': colorVar('tertiary-fixed'),
+        'tertiary-fixed-dim': colorVar('tertiary-fixed-dim'),
+        'on-tertiary-fixed': colorVar('on-tertiary-fixed'),
+        'on-tertiary-fixed-variant': colorVar('on-tertiary-fixed-variant'),
 
-        error: '#ba1a1a',
-        'on-error': '#ffffff',
-        'error-container': '#ffdad6',
-        'on-error-container': '#93000a',
+        error: colorVar('error'),
+        'on-error': colorVar('on-error'),
+        'error-container': colorVar('error-container'),
+        'on-error-container': colorVar('on-error-container'),
 
-        background: '#f8f9fa',
-        'on-background': '#191c1d',
-        surface: '#f8f9fa',
-        'on-surface': '#191c1d',
-        'surface-variant': '#e1e3e4',
-        'on-surface-variant': '#404943',
-        'surface-dim': '#d9dadb',
-        'surface-bright': '#f8f9fa',
-        'surface-container-lowest': '#ffffff',
-        'surface-container-low': '#f3f4f5',
-        'surface-container': '#edeeef',
-        'surface-container-high': '#e7e8e9',
-        'surface-container-highest': '#e1e3e4',
-        'surface-tint': '#2c694e',
+        background: colorVar('background'),
+        'on-background': colorVar('on-background'),
+        surface: colorVar('surface'),
+        'on-surface': colorVar('on-surface'),
+        'surface-variant': colorVar('surface-variant'),
+        'on-surface-variant': colorVar('on-surface-variant'),
+        'surface-dim': colorVar('surface-dim'),
+        'surface-bright': colorVar('surface-bright'),
+        'surface-container-lowest': colorVar('surface-container-lowest'),
+        'surface-container-low': colorVar('surface-container-low'),
+        'surface-container': colorVar('surface-container'),
+        'surface-container-high': colorVar('surface-container-high'),
+        'surface-container-highest': colorVar('surface-container-highest'),
+        'surface-tint': colorVar('surface-tint'),
 
-        outline: '#707973',
-        'outline-variant': '#bfc9c1',
-        'inverse-surface': '#2e3132',
-        'inverse-on-surface': '#f0f1f2',
+        outline: colorVar('outline'),
+        'outline-variant': colorVar('outline-variant'),
+        'inverse-surface': colorVar('inverse-surface'),
+        'inverse-on-surface': colorVar('inverse-on-surface'),
       },
       borderRadius: {
         DEFAULT: '0.25rem',
@@ -78,6 +87,7 @@ export default {
         'touch-target-min': '48px',
       },
       fontFamily: {
+        'headline-xl': ['Inter', 'sans-serif'],
         'headline-lg': ['Inter', 'sans-serif'],
         'headline-md': ['Inter', 'sans-serif'],
         'body-lg': ['Inter', 'sans-serif'],
@@ -86,6 +96,12 @@ export default {
         button: ['Inter', 'sans-serif'],
       },
       fontSize: {
+        // Único paso por encima de headline-lg: reservado para números
+        // "hero" de tarjetas KPI (referencia: mockup "Dashboard - Optimizado
+        // Final" en Stitch) — no es un display face nuevo, es el mismo Inter
+        // 700 de headline-lg, solo un escalón más grande para esa métrica
+        // puntual. No usar fuera de números de KPI.
+        'headline-xl': ['32px', { lineHeight: '40px', letterSpacing: '-0.02em', fontWeight: '700' }],
         'headline-lg': ['24px', { lineHeight: '32px', letterSpacing: '-0.02em', fontWeight: '700' }],
         'headline-md': ['20px', { lineHeight: '28px', letterSpacing: '-0.01em', fontWeight: '600' }],
         'body-lg': ['16px', { lineHeight: '24px', fontWeight: '400' }],

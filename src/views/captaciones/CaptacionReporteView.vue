@@ -5,19 +5,28 @@
 // Captador). Mientras tanto, se accede a cada bitácora por separado desde
 // los 4 accesos directos de abajo.
 import { computed, onMounted, ref } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import EstadoCaptacionBadge from '@/components/ui/EstadoCaptacionBadge.vue'
 import EstadoSanitarioBadge from '@/components/ui/EstadoSanitarioBadge.vue'
+import AppIcon, { type NombreIcono } from '@/components/ui/AppIcon.vue'
+import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 import { ApiError } from '@/api/client'
 import * as captacionesApi from '@/api/captaciones'
 import { CategoriaGanadoLabels, TipoManejoAlimentarioLabels } from '@/types/enums'
 import type { CaptacionGanadoDto } from '@/types/dto'
 
 const route = useRoute()
+const router = useRouter()
 const id = route.params.id as string
+const auth = useAuthStore()
+const { mostrar } = useToast()
+// Eliminar: 🔒 Administrador (CaptacionesController.cs — [Authorize(Roles = "Administrador")] en DELETE)
+const puedeEliminar = computed(() => auth.rol === 'Administrador')
 
 const captacion = ref<CaptacionGanadoDto | null>(null)
 const cargando = ref(true)
@@ -28,7 +37,7 @@ function formatearFecha(iso: string | null): string {
   return new Date(iso).toLocaleDateString('es-BO', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-const bitacoraLinks = [
+const bitacoraLinks: { routeName: string; titulo: string; icono: NombreIcono }[] = [
   { routeName: 'bitacora-pesaje', titulo: 'Pesaje', icono: 'scale' },
   { routeName: 'bitacora-sanitario', titulo: 'Sanitario', icono: 'vaccines' },
   { routeName: 'bitacora-movimiento', titulo: 'Movimiento', icono: 'local_shipping' },
@@ -48,14 +57,45 @@ async function cargar() {
 }
 onMounted(cargar)
 
+// --- Eliminar ---
+const confirmandoEliminar = ref(false)
+const eliminando = ref(false)
+const errorEliminar = ref<string | null>(null)
+
+function pedirConfirmacionEliminar() {
+  confirmandoEliminar.value = true
+  errorEliminar.value = null
+}
+
+function cancelarEliminacion() {
+  if (eliminando.value) return
+  confirmandoEliminar.value = false
+}
+
+async function confirmarEliminacion() {
+  if (!captacion.value) return
+  eliminando.value = true
+  errorEliminar.value = null
+  try {
+    await captacionesApi.eliminar(captacion.value.id)
+    mostrar('Captación eliminada correctamente.')
+    await router.push({ name: 'captaciones', params: { estanciaId: captacion.value.estanciaId } })
+  } catch (error) {
+    errorEliminar.value = error instanceof ApiError ? error.message : 'Ocurrió un error inesperado.'
+  } finally {
+    eliminando.value = false
+  }
+}
+
 const metricas = computed(() => {
   if (!captacion.value) return null
   const c = captacion.value
-  return [
+  const filas: { icon: NombreIcono; label: string; value: string }[] = [
     { icon: 'pets', label: 'Cabezas Totales', value: String(c.totalCabezas) },
     { icon: 'scale', label: 'Peso Estimado Total', value: `${c.pesoEstimadoTotal.toLocaleString('es-BO')} kg` },
     { icon: 'calendar_month', label: 'Días en Potrero', value: c.diasEnPotrero !== null ? String(c.diasEnPotrero) : '—' },
   ]
+  return filas
 })
 </script>
 
@@ -67,7 +107,7 @@ const metricas = computed(() => {
         :to="{ name: 'captaciones', params: { estanciaId: captacion.estanciaId } }"
         class="inline-flex items-center gap-1 text-primary font-label-md text-label-md w-fit"
       >
-        <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+        <AppIcon name="arrow_back" :size="18" />
         Volver a Captaciones
       </RouterLink>
 
@@ -88,9 +128,21 @@ const metricas = computed(() => {
               <EstadoSanitarioBadge :estado="captacion.estadoSanitario" />
             </div>
           </div>
-          <RouterLink :to="{ name: 'captaciones-editar', params: { id: captacion.id } }" class="w-full md:w-auto">
-            <BaseButton icon="edit" pill class="md:w-auto">Editar Captación</BaseButton>
-          </RouterLink>
+          <div class="flex items-center gap-2 w-full md:w-auto">
+            <RouterLink :to="{ name: 'captaciones-editar', params: { id: captacion.id } }" class="flex-1 md:flex-none">
+              <BaseButton icon="edit" pill class="md:w-auto">Editar Captación</BaseButton>
+            </RouterLink>
+            <button
+              v-if="puedeEliminar"
+              type="button"
+              class="w-touch-target-min h-touch-target-min shrink-0 rounded-full inline-flex items-center justify-center text-on-surface-variant border-2 border-outline-variant hover:bg-error-container hover:text-error hover:border-error/20 transition-colors"
+              title="Eliminar captación"
+              aria-label="Eliminar captación"
+              @click="pedirConfirmacionEliminar"
+            >
+              <AppIcon name="delete" :size="20" />
+            </button>
+          </div>
         </section>
 
         <!-- Métricas -->
@@ -101,7 +153,7 @@ const metricas = computed(() => {
             class="bg-surface-container-low rounded-xl p-6 shadow-sm border border-outline-variant/30 flex flex-col justify-between"
           >
             <div class="flex items-center gap-3 mb-4 text-on-surface-variant">
-              <span class="material-symbols-outlined text-primary">{{ m.icon }}</span>
+              <AppIcon :name="m.icon" :size="20" class="text-primary" />
               <span class="font-label-md text-label-md uppercase">{{ m.label }}</span>
             </div>
             <div class="font-headline-lg text-headline-lg text-on-surface">{{ m.value }}</div>
@@ -121,7 +173,7 @@ const metricas = computed(() => {
             :to="{ name: b.routeName, params: { captacionId: captacion.id } }"
             class="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/50 flex flex-col items-center gap-2 text-center hover:border-primary/40 transition-colors"
           >
-            <span class="material-symbols-outlined text-primary text-2xl">{{ b.icono }}</span>
+            <AppIcon :name="b.icono" :size="24" class="text-primary" />
             <span class="font-label-md text-label-md text-on-surface">{{ b.titulo }}</span>
           </RouterLink>
         </section>
@@ -173,10 +225,10 @@ const metricas = computed(() => {
                 <template v-if="d.pesoPromedioEstimadoKg"> • {{ d.pesoPromedioEstimadoKg }} kg (Prom)</template>
               </p>
               <div class="flex gap-2 mt-2 flex-wrap">
-                <span class="text-[10px] bg-surface-container-high px-2 py-1 rounded text-on-surface-variant font-medium">
+                <span class="font-label-md text-label-md bg-surface-container-high px-2 py-1 rounded text-on-surface-variant">
                   {{ TipoManejoAlimentarioLabels[d.sistemaAlimentacion] }}
                 </span>
-                <span class="text-[10px] bg-surface-container-high px-2 py-1 rounded text-on-surface-variant font-medium">
+                <span class="font-label-md text-label-md bg-surface-container-high px-2 py-1 rounded text-on-surface-variant">
                   Faena: {{ formatearFecha(d.fechaEstimadaFaena) }}
                 </span>
               </div>
@@ -185,5 +237,16 @@ const metricas = computed(() => {
         </section>
       </template>
     </div>
+
+    <ConfirmDialog
+      :open="confirmandoEliminar"
+      title="Eliminar captación"
+      :message="`¿Está seguro de eliminar «${captacion?.nombre}»? Esta acción no se puede deshacer.`"
+      confirm-label="Eliminar"
+      :loading="eliminando"
+      :error-message="errorEliminar"
+      @confirm="confirmarEliminacion"
+      @cancel="cancelarEliminacion"
+    />
   </AppShell>
 </template>

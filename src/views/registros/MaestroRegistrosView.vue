@@ -7,11 +7,16 @@ import { RouterLink } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import SyncBadge from '@/components/ui/SyncBadge.vue'
+import SkeletonTable from '@/components/ui/SkeletonTable.vue'
+import SkeletonCard from '@/components/ui/SkeletonCard.vue'
+import Pagination from '@/components/ui/Pagination.vue'
+import AppIcon, { type NombreIcono } from '@/components/ui/AppIcon.vue'
 import { ApiError } from '@/api/client'
 import * as registrosApi from '@/api/registros'
+import { usePaginacion } from '@/composables/usePaginacion'
 import type { RegistroCampoDto } from '@/types/dto'
 
-const TIPO_ICONOS: Record<RegistroCampoDto['tipo'], string> = {
+const TIPO_ICONOS: Record<RegistroCampoDto['tipo'], NombreIcono> = {
   Pesaje: 'scale',
   Sanitario: 'vaccines',
   Movimiento: 'local_shipping',
@@ -37,6 +42,8 @@ const registros = ref<RegistroCampoDto[]>([])
 const cargando = ref(true)
 const errorMensaje = ref<string | null>(null)
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+const { paginaActual, totalPaginas, itemsPagina, porPagina } = usePaginacion(registros, 8)
 
 function formatearFechaHora(iso: string): string {
   return new Date(iso).toLocaleString('es-BO', {
@@ -83,7 +90,7 @@ onMounted(cargar)
 
 <template>
   <AppShell>
-    <div class="p-stack-md md:p-stack-lg flex flex-col gap-stack-md max-w-7xl mx-auto w-full">
+    <div class="p-stack-md md:p-stack-lg flex flex-col gap-stack-md w-full">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 class="font-headline-lg text-headline-lg text-on-surface">Maestro de Registros</h1>
@@ -92,7 +99,7 @@ onMounted(cargar)
           </p>
         </div>
         <div class="relative w-full md:w-80">
-          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-outline flex"><AppIcon name="search" :size="20" /></span>
           <input
             v-model="filtros.texto"
             type="text"
@@ -104,13 +111,16 @@ onMounted(cargar)
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
-        <select
-          v-model="filtros.tipo"
-          class="h-10 px-3 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface font-body-md text-body-md"
-          @change="cargar"
-        >
-          <option v-for="opt in TIPO_OPCIONES" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-        </select>
+        <div class="relative">
+          <select
+            v-model="filtros.tipo"
+            class="h-10 pl-3 pr-8 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface font-body-md text-body-md appearance-none"
+            @change="cargar"
+          >
+            <option v-for="opt in TIPO_OPCIONES" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+          <AppIcon name="expand_more" :size="16" class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-outline" />
+        </div>
         <input
           v-model="filtros.desde"
           type="date"
@@ -136,15 +146,16 @@ onMounted(cargar)
 
       <AlertBanner v-if="errorMensaje" variant="error">{{ errorMensaje }}</AlertBanner>
 
-      <div v-if="cargando" class="flex flex-col gap-gutter-mobile">
-        <div v-for="n in 5" :key="n" class="h-16 rounded-xl bg-surface-container-lowest border border-outline-variant animate-pulse" />
-      </div>
+      <template v-if="cargando">
+        <SkeletonTable class="hidden md:block" :columnas="7" :filas="5" />
+        <SkeletonCard class="md:hidden" :cantidad="5" />
+      </template>
 
       <div
         v-else-if="registros.length === 0"
         class="flex flex-col items-center justify-center gap-stack-sm py-16 bg-surface-container-lowest rounded-xl border border-outline-variant"
       >
-        <span class="material-symbols-outlined text-[48px] text-outline-variant">search_off</span>
+        <AppIcon name="search_off" :size="44" class="text-outline-variant" />
         <p class="font-body-lg text-body-lg text-on-surface-variant">No se encontraron registros con estos filtros.</p>
       </div>
 
@@ -164,12 +175,12 @@ onMounted(cargar)
               </tr>
             </thead>
             <tbody class="divide-y divide-outline-variant">
-              <tr v-for="r in registros" :key="r.id" class="hover:bg-surface-container-low transition-colors">
+              <tr v-for="r in itemsPagina" :key="r.id" class="hover:bg-surface-container-low transition-colors">
                 <td class="p-4 font-body-md text-on-surface font-medium">#{{ r.id.slice(0, 8) }}</td>
                 <td class="p-4 font-body-md text-on-surface-variant whitespace-nowrap">{{ formatearFechaHora(r.fechaHora) }}</td>
                 <td class="p-4">
                   <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container text-on-surface-variant border border-outline-variant">
-                    <span class="material-symbols-outlined text-[16px]">{{ TIPO_ICONOS[r.tipo] }}</span>
+                    <AppIcon :name="TIPO_ICONOS[r.tipo]" :size="16" />
                     <span class="font-label-md text-label-md">{{ r.tipo === 'Alimentacion' ? 'Alimentación' : r.tipo }}</span>
                   </div>
                 </td>
@@ -190,7 +201,7 @@ onMounted(cargar)
       <!-- Mobile cards -->
       <div v-if="!cargando && registros.length > 0" class="md:hidden flex flex-col gap-gutter-mobile">
         <div
-          v-for="r in registros"
+          v-for="r in itemsPagina"
           :key="r.id"
           class="bg-surface-container-lowest rounded-xl p-stack-md shadow-sm border border-outline-variant flex flex-col gap-stack-sm"
         >
@@ -200,7 +211,7 @@ onMounted(cargar)
               <span class="font-label-md text-label-md text-on-surface-variant mt-1">{{ formatearFechaHora(r.fechaHora) }}</span>
             </div>
             <div class="flex items-center gap-1 bg-surface-container px-2 py-1 rounded border border-outline-variant">
-              <span class="material-symbols-outlined text-primary text-[16px]">{{ TIPO_ICONOS[r.tipo] }}</span>
+              <AppIcon :name="TIPO_ICONOS[r.tipo]" :size="16" class="text-primary" />
               <span class="font-label-md text-primary">{{ r.tipo === 'Alimentacion' ? 'Alimentación' : r.tipo }}</span>
             </div>
           </div>
@@ -208,7 +219,7 @@ onMounted(cargar)
             :to="{ name: 'captaciones-reporte', params: { id: r.captacionGanadoId } }"
             class="flex items-center gap-2 text-primary font-body-md font-semibold hover:underline w-fit"
           >
-            <span class="material-symbols-outlined text-[18px]">location_on</span>
+            <AppIcon name="location_on" :size="18" />
             {{ r.captacionNombre }}
           </RouterLink>
           <p class="font-body-md text-on-surface">{{ r.detalleMetrica }}</p>
@@ -216,6 +227,14 @@ onMounted(cargar)
           <SyncBadge :estado="r.estadoSync" />
         </div>
       </div>
+
+      <Pagination
+        v-if="!cargando && registros.length > 0"
+        v-model="paginaActual"
+        :total-paginas="totalPaginas"
+        :total="registros.length"
+        :por-pagina="porPagina"
+      />
     </div>
   </AppShell>
 </template>

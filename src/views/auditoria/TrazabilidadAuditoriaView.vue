@@ -2,16 +2,21 @@
 import { onMounted, reactive, ref } from 'vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
+import SkeletonTable from '@/components/ui/SkeletonTable.vue'
+import SkeletonCard from '@/components/ui/SkeletonCard.vue'
+import Pagination from '@/components/ui/Pagination.vue'
+import AppIcon, { type NombreIcono } from '@/components/ui/AppIcon.vue'
 import { ApiError } from '@/api/client'
 import * as auditoriaApi from '@/api/auditoria'
 import * as usuariosApi from '@/api/usuarios'
+import { usePaginacion } from '@/composables/usePaginacion'
 import { AccionAuditoriaLabels } from '@/types/enums'
 import type { ModuloAuditoria } from '@/types/enums'
 import type { LogAuditoriaDto, UsuarioDto } from '@/types/dto'
 
 const MODULOS: ModuloAuditoria[] = ['Usuario', 'Estancia', 'CaptacionGanado', 'Pesaje', 'Sanitario', 'Movimiento', 'Alimentacion']
 
-const ACCION_ICONOS: Record<string, string> = { Creacion: 'add_circle', Modificacion: 'edit', Eliminacion: 'delete' }
+const ACCION_ICONOS: Record<string, NombreIcono> = { Creacion: 'add_circle', Modificacion: 'edit', Eliminacion: 'delete' }
 const ACCION_ESTILOS: Record<string, string> = {
   Creacion: 'bg-primary/10 text-primary border-primary/20',
   Modificacion: 'bg-secondary-container/50 text-secondary border-secondary/20',
@@ -23,6 +28,8 @@ const usuarios = ref<UsuarioDto[]>([])
 const logs = ref<LogAuditoriaDto[]>([])
 const cargando = ref(true)
 const errorMensaje = ref<string | null>(null)
+
+const { paginaActual, totalPaginas, itemsPagina, porPagina } = usePaginacion(logs, 8)
 
 function formatearFechaHora(iso: string): string {
   return new Date(iso).toLocaleString('es-BO', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -65,21 +72,35 @@ onMounted(async () => {
 
 <template>
   <AppShell>
-    <div class="p-stack-md md:p-stack-lg flex flex-col gap-stack-md max-w-7xl mx-auto w-full">
+    <div class="p-stack-md md:p-stack-lg flex flex-col gap-stack-md w-full">
       <div>
         <h1 class="font-headline-lg text-headline-lg text-on-surface">Trazabilidad y Auditoría</h1>
         <p class="font-body-md text-body-md text-on-surface-variant mt-1">Registro de acciones realizadas en el sistema.</p>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
-        <select v-model="filtros.usuarioId" class="h-10 px-3 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface font-body-md text-body-md" @change="cargar">
-          <option value="">Todos los usuarios</option>
-          <option v-for="u in usuarios" :key="u.id" :value="u.id">{{ u.nombre }}</option>
-        </select>
-        <select v-model="filtros.modulo" class="h-10 px-3 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface font-body-md text-body-md" @change="cargar">
-          <option value="">Todos los módulos</option>
-          <option v-for="m in MODULOS" :key="m" :value="m">{{ m }}</option>
-        </select>
+        <div class="relative">
+          <select
+            v-model="filtros.usuarioId"
+            class="h-10 pl-3 pr-8 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface font-body-md text-body-md appearance-none"
+            @change="cargar"
+          >
+            <option value="">Todos los usuarios</option>
+            <option v-for="u in usuarios" :key="u.id" :value="u.id">{{ u.nombre }}</option>
+          </select>
+          <AppIcon name="expand_more" :size="16" class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-outline" />
+        </div>
+        <div class="relative">
+          <select
+            v-model="filtros.modulo"
+            class="h-10 pl-3 pr-8 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface font-body-md text-body-md appearance-none"
+            @change="cargar"
+          >
+            <option value="">Todos los módulos</option>
+            <option v-for="m in MODULOS" :key="m" :value="m">{{ m }}</option>
+          </select>
+          <AppIcon name="expand_more" :size="16" class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-outline" />
+        </div>
         <input v-model="filtros.desde" type="date" class="h-10 px-3 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface font-body-md text-body-md" @change="cargar" />
         <span class="text-on-surface-variant font-body-md">—</span>
         <input v-model="filtros.hasta" type="date" class="h-10 px-3 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface font-body-md text-body-md" @change="cargar" />
@@ -95,12 +116,13 @@ onMounted(async () => {
 
       <AlertBanner v-if="errorMensaje" variant="error">{{ errorMensaje }}</AlertBanner>
 
-      <div v-if="cargando" class="flex flex-col gap-gutter-mobile">
-        <div v-for="n in 5" :key="n" class="h-16 rounded-xl bg-surface-container-lowest border border-outline-variant animate-pulse" />
-      </div>
+      <template v-if="cargando">
+        <SkeletonTable class="hidden md:block" :columnas="5" :filas="5" />
+        <SkeletonCard class="md:hidden" :cantidad="5" />
+      </template>
 
       <div v-else-if="logs.length === 0" class="flex flex-col items-center justify-center gap-stack-sm py-16 bg-surface-container-lowest rounded-xl border border-outline-variant">
-        <span class="material-symbols-outlined text-[48px] text-outline-variant">history_toggle_off</span>
+        <AppIcon name="history_toggle_off" :size="44" class="text-outline-variant" />
         <p class="font-body-lg text-body-lg text-on-surface-variant">No hay eventos de auditoría con estos filtros.</p>
       </div>
 
@@ -116,12 +138,12 @@ onMounted(async () => {
             </tr>
           </thead>
           <tbody class="divide-y divide-outline-variant">
-            <tr v-for="log in logs" :key="log.id" class="hover:bg-surface-container-low transition-colors">
+            <tr v-for="log in itemsPagina" :key="log.id" class="hover:bg-surface-container-low transition-colors">
               <td class="p-4 font-body-md text-on-surface-variant whitespace-nowrap">{{ formatearFechaHora(log.fechaHora) }}</td>
               <td class="p-4 font-body-md text-on-surface">{{ log.usuarioNombre }}</td>
               <td class="p-4">
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-label-md text-label-md border" :class="ACCION_ESTILOS[log.accion]">
-                  <span class="material-symbols-outlined text-[16px]">{{ ACCION_ICONOS[log.accion] }}</span>
+                  <AppIcon :name="ACCION_ICONOS[log.accion]" :size="16" />
                   {{ AccionAuditoriaLabels[log.accion] }}
                 </span>
               </td>
@@ -133,11 +155,11 @@ onMounted(async () => {
       </div>
 
       <div v-if="!cargando && logs.length > 0" class="md:hidden flex flex-col gap-gutter-mobile">
-        <div v-for="log in logs" :key="log.id" class="bg-surface-container-lowest rounded-xl p-margin-mobile shadow-sm border border-outline-variant flex flex-col gap-stack-sm">
+        <div v-for="log in itemsPagina" :key="log.id" class="bg-surface-container-lowest rounded-xl p-margin-mobile shadow-sm border border-outline-variant flex flex-col gap-stack-sm">
           <div class="flex justify-between items-start">
             <span class="font-label-md text-label-md text-on-surface-variant">{{ formatearFechaHora(log.fechaHora) }}</span>
             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-label-md text-label-md border" :class="ACCION_ESTILOS[log.accion]">
-              <span class="material-symbols-outlined text-[14px]">{{ ACCION_ICONOS[log.accion] }}</span>
+              <AppIcon :name="ACCION_ICONOS[log.accion]" :size="14" />
               {{ AccionAuditoriaLabels[log.accion] }}
             </span>
           </div>
@@ -145,6 +167,14 @@ onMounted(async () => {
           <p v-if="log.detalle" class="font-body-md text-body-md text-on-surface-variant">{{ log.detalle }}</p>
         </div>
       </div>
+
+      <Pagination
+        v-if="!cargando && logs.length > 0"
+        v-model="paginaActual"
+        :total-paginas="totalPaginas"
+        :total="logs.length"
+        :por-pagina="porPagina"
+      />
     </div>
   </AppShell>
 </template>

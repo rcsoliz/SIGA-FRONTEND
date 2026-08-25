@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import FormField from '@/components/ui/FormField.vue'
 import GpsCapture from '@/components/ui/GpsCapture.vue'
 import IconOptionGroup from '@/components/ui/IconOptionGroup.vue'
+import AppIcon, { type NombreIcono } from '@/components/ui/AppIcon.vue'
 import { ApiError } from '@/api/client'
+import { useToast } from '@/composables/useToast'
 import * as captacionesApi from '@/api/captaciones'
 import * as estanciasApi from '@/api/estancias'
 import type { CategoriaGanado, TipoManejoAlimentario } from '@/types/enums'
@@ -16,11 +18,12 @@ import type { CreateDetalleLoteGanadoDto, EstanciaDto } from '@/types/dto'
 
 const route = useRoute()
 const router = useRouter()
+const { mostrar } = useToast()
 const estanciaId = computed(() => route.params.estanciaId as string)
 
 const estancia = ref<EstanciaDto | null>(null)
 
-const categoriaOptions: { value: CategoriaGanado; label: string; icon: string }[] = [
+const categoriaOptions: { value: CategoriaGanado; label: string; icon: NombreIcono }[] = [
   { value: 'Toro', label: CategoriaGanadoLabels.Toro, icon: 'male' },
   { value: 'Novillo', label: CategoriaGanadoLabels.Novillo, icon: 'cruelty_free' },
   { value: 'Vaquilla', label: CategoriaGanadoLabels.Vaquilla, icon: 'female' },
@@ -28,7 +31,7 @@ const categoriaOptions: { value: CategoriaGanado; label: string; icon: string }[
   { value: 'Ternero', label: CategoriaGanadoLabels.Ternero, icon: 'child_care' },
 ]
 
-const alimentacionOptions: { value: TipoManejoAlimentario; label: string; icon: string }[] = [
+const alimentacionOptions: { value: TipoManejoAlimentario; label: string; icon: NombreIcono }[] = [
   { value: 'PastoreoLibre', label: TipoManejoAlimentarioLabels.PastoreoLibre, icon: 'grass' },
   { value: 'SemiConfinamiento', label: TipoManejoAlimentarioLabels.SemiConfinamiento, icon: 'fence' },
   { value: 'Confinamiento', label: TipoManejoAlimentarioLabels.Confinamiento, icon: 'warehouse' },
@@ -67,6 +70,71 @@ const detalle = reactive({
 const grupos = ref<GrupoLocal[]>([])
 const errorDetalle = ref<string | null>(null)
 
+// Raza / peso / fecha de faena / notas son opcionales (agregarGrupo() solo
+// exige categoría, cantidad y alimentación) — se ocultan detrás de este
+// toggle para que agregar un grupo muestre 3 decisiones, no 7 (hallazgo de
+// carga cognitiva de /impeccable critique 2026-08-22: "one screen
+// simultaneously handles... four distinct decision loops").
+const mostrarDetallesOpcionales = ref(false)
+
+// --- Borrador local (evita perder el trabajo de campo ante recarga, pérdida
+// de señal o expiración de sesión — hallazgo P1 de /impeccable critique
+// 2026-08-22: esta es la pantalla más sensible a interrupciones del producto
+// y no tenía ninguna persistencia). Se guarda por estancia, se restaura al
+// montar, y se borra solo al confirmar el registro con éxito. ---
+interface BorradorCaptacion {
+  cabecera: typeof cabecera
+  grupos: GrupoLocal[]
+  detalle: typeof detalle
+}
+
+function claveBorrador(): string {
+  return `siga.captacion-borrador.${estanciaId.value}`
+}
+
+function hayCambiosSinGuardar(): boolean {
+  return grupos.value.length > 0 || cabecera.nombre.trim().length > 0
+}
+
+function guardarBorrador() {
+  if (!hayCambiosSinGuardar()) return
+  const borrador: BorradorCaptacion = { cabecera: { ...cabecera }, grupos: grupos.value, detalle: { ...detalle } }
+  localStorage.setItem(claveBorrador(), JSON.stringify(borrador))
+}
+
+function borrarBorrador() {
+  localStorage.removeItem(claveBorrador())
+}
+
+function restaurarBorrador(): boolean {
+  const guardado = localStorage.getItem(claveBorrador())
+  if (!guardado) return false
+  try {
+    const borrador = JSON.parse(guardado) as BorradorCaptacion
+    Object.assign(cabecera, borrador.cabecera)
+    grupos.value = borrador.grupos ?? []
+    Object.assign(detalle, borrador.detalle)
+    // Si el borrador traía algún detalle opcional cargado, hay que abrir el
+    // panel — si no, quedaría restaurado pero invisible detrás del toggle.
+    if (detalle.raza || detalle.pesoPromedioEstimadoKg || detalle.fechaEstimadaFaena || detalle.notasZootecnicas) {
+      mostrarDetallesOpcionales.value = true
+    }
+    return hayCambiosSinGuardar()
+  } catch {
+    borrarBorrador()
+    return false
+  }
+}
+
+const guardadoExitoso = ref(false)
+
+function onBeforeUnloadHandler(e: BeforeUnloadEvent) {
+  if (hayCambiosSinGuardar()) {
+    e.preventDefault()
+    e.returnValue = ''
+  }
+}
+
 function resetDetalle() {
   detalle.categoria = null
   detalle.raza = ''
@@ -75,6 +143,7 @@ function resetDetalle() {
   detalle.sistemaAlimentacion = null
   detalle.fechaEstimadaFaena = ''
   detalle.notasZootecnicas = ''
+  mostrarDetallesOpcionales.value = false
 }
 
 function agregarGrupo() {
@@ -122,7 +191,27 @@ async function cargarEstancia() {
     errorMensaje.value = error instanceof ApiError ? error.message : 'Ocurrió un error inesperado.'
   }
 }
-onMounted(cargarEstancia)
+
+onMounted(() => {
+  cargarEstancia()
+  if (restaurarBorrador()) {
+    mostrar('Se restauró un borrador guardado en este dispositivo.', 'info', 6000)
+  }
+  window.addEventListener('beforeunload', onBeforeUnloadHandler)
+})
+onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnloadHandler))
+
+// Autoguardado: cualquier cambio en cabecera/grupos/detalle se refleja en el
+// borrador local de inmediato — así una recarga o pérdida de sesión a mitad
+// de un grupo no borra nada.
+watch([cabecera, grupos, detalle], guardarBorrador, { deep: true })
+
+onBeforeRouteLeave(() => {
+  if (guardadoExitoso.value || !hayCambiosSinGuardar()) return true
+  return window.confirm(
+    'Tiene datos de esta captación sin registrar. Se conservaron como borrador en este dispositivo y podrá continuarlos la próxima vez, pero aún no se guardaron en el sistema. ¿Desea salir de todas formas?',
+  )
+})
 
 async function guardarTodo() {
   errorMensaje.value = null
@@ -149,6 +238,9 @@ async function guardarTodo() {
       fechaCreacionLocal: new Date().toISOString(),
       detalles: grupos.value.map(({ tempId, ...resto }) => resto),
     })
+    borrarBorrador()
+    guardadoExitoso.value = true
+    mostrar('Captación registrada correctamente.')
     await router.push({ name: 'captaciones-reporte', params: { id: creada.id } })
   } catch (error) {
     errorMensaje.value = error instanceof ApiError ? error.message : 'Ocurrió un error inesperado.'
@@ -177,7 +269,7 @@ function cancelar() {
       <!-- Sección 1: Datos Generales -->
       <section class="bg-surface-container-low rounded-xl p-4 md:p-6 border border-outline-variant/50 flex flex-col gap-gutter-mobile md:gap-6">
         <h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary">location_on</span>
+          <AppIcon name="location_on" :size="20" class="text-primary" />
           Datos Generales
         </h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-gutter-mobile md:gap-y-6">
@@ -193,18 +285,13 @@ function cancelar() {
         <!-- Sección 2: Agregar Grupo -->
         <section class="xl:col-span-2 bg-surface-container-low rounded-xl p-4 md:p-6 border border-outline-variant/50 flex flex-col gap-gutter-mobile">
           <h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary">add_circle</span>
+            <AppIcon name="add_circle" :size="20" class="text-primary" />
             Agregar Grupo Animal
           </h3>
 
           <IconOptionGroup v-model="detalle.categoria" label="Categoría" :options="categoriaOptions" />
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter-mobile">
-            <FormField v-model="detalle.raza" label="Raza" placeholder="Ej. Brangus" />
-            <FormField v-model="detalle.cantidadCabezas" type="number" label="Cantidad de Cabezas" placeholder="0" />
-            <FormField v-model="detalle.pesoPromedioEstimadoKg" type="number" step="0.1" suffix="kg" label="Peso Promedio Estimado" placeholder="0.0" />
-            <FormField v-model="detalle.fechaEstimadaFaena" type="date" label="Fecha Estimada de Faena" />
-          </div>
+          <FormField v-model="detalle.cantidadCabezas" type="number" label="Cantidad de Cabezas" placeholder="0" required />
 
           <IconOptionGroup
             v-model="detalle.sistemaAlimentacion"
@@ -213,7 +300,23 @@ function cancelar() {
             columns="grid-cols-1 sm:grid-cols-3"
           />
 
-          <FormField v-model="detalle.notasZootecnicas" type="textarea" label="Notas Zootécnicas" placeholder="Condición corporal, marcas específicas..." />
+          <button
+            type="button"
+            class="inline-flex items-center gap-1 text-primary font-label-md text-label-md hover:underline w-fit"
+            @click="mostrarDetallesOpcionales = !mostrarDetallesOpcionales"
+          >
+            <AppIcon :name="mostrarDetallesOpcionales ? 'expand_less' : 'expand_more'" :size="16" />
+            {{ mostrarDetallesOpcionales ? 'Ocultar detalles opcionales' : 'Agregar detalles opcionales (raza, peso, fecha de faena, notas)' }}
+          </button>
+
+          <div v-if="mostrarDetallesOpcionales" class="flex flex-col gap-gutter-mobile">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter-mobile">
+              <FormField v-model="detalle.raza" label="Raza" placeholder="Ej. Brangus" />
+              <FormField v-model="detalle.pesoPromedioEstimadoKg" type="number" step="0.1" suffix="kg" label="Peso Promedio Estimado" placeholder="0.0" />
+              <FormField v-model="detalle.fechaEstimadaFaena" type="date" label="Fecha Estimada de Faena" />
+            </div>
+            <FormField v-model="detalle.notasZootecnicas" type="textarea" label="Notas Zootécnicas" placeholder="Condición corporal, marcas específicas..." />
+          </div>
 
           <AlertBanner v-if="errorDetalle" variant="error">{{ errorDetalle }}</AlertBanner>
 
@@ -241,10 +344,11 @@ function cancelar() {
               <button
                 type="button"
                 class="absolute top-2 right-2 text-on-surface-variant hover:text-error transition-colors"
+                title="Quitar grupo"
                 aria-label="Quitar grupo"
                 @click="quitarGrupo(g.tempId)"
               >
-                <span class="material-symbols-outlined">delete</span>
+                <AppIcon name="delete" :size="18" />
               </button>
               <h4 class="font-body-lg text-body-lg font-bold text-on-surface pr-8">
                 {{ g.cantidadCabezas }} {{ CategoriaGanadoLabels[g.categoria] }}
@@ -253,7 +357,7 @@ function cancelar() {
                 {{ g.raza || 'Raza no especificada' }}
                 <template v-if="g.pesoPromedioEstimadoKg"> • {{ g.pesoPromedioEstimadoKg }} kg (Prom)</template>
               </p>
-              <span class="inline-block mt-2 text-[10px] bg-surface-container-high px-2 py-1 rounded text-on-surface-variant font-medium">
+              <span class="inline-block mt-2 font-label-md text-label-md bg-surface-container-high px-2 py-1 rounded text-on-surface-variant">
                 {{ TipoManejoAlimentarioLabels[g.sistemaAlimentacion] }}
               </span>
             </div>

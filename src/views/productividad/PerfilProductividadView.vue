@@ -7,6 +7,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
+import AppIcon, { type NombreIcono } from '@/components/ui/AppIcon.vue'
 import { useAuthStore } from '@/stores/auth'
 import { ApiError } from '@/api/client'
 import * as dashboardApi from '@/api/dashboard'
@@ -41,12 +42,13 @@ onMounted(cargar)
 const metricas = computed(() => {
   if (!perfil.value) return []
   const p = perfil.value
-  return [
+  const filas: { icon: NombreIcono; label: string; value: number }[] = [
     { icon: 'home_work', label: 'Estancias Registradas', value: p.estanciasRegistradas },
     { icon: 'dataset', label: 'Captaciones Registradas', value: p.captacionesRegistradas },
     { icon: 'task_alt', label: 'Captaciones Activas', value: p.captacionesActivas },
     { icon: 'pets', label: 'Total Cabezas Capturadas', value: p.totalCabezasCapturadas },
   ]
+  return filas
 })
 </script>
 
@@ -60,7 +62,7 @@ const metricas = computed(() => {
       <template v-else-if="perfil">
         <section class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-6 flex items-center gap-4">
           <div class="w-16 h-16 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container shrink-0">
-            <span class="material-symbols-outlined text-[32px]">person</span>
+            <AppIcon name="person" :size="28" />
           </div>
           <div>
             <h1 class="font-headline-lg text-headline-lg text-on-surface">{{ perfil.nombre }}</h1>
@@ -77,7 +79,7 @@ const metricas = computed(() => {
             :key="s"
             class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-tertiary-container/20 text-tertiary font-label-md text-label-md border border-tertiary/20"
           >
-            <span class="material-symbols-outlined text-[16px]">map</span>
+            <AppIcon name="map" :size="16" />
             {{ s }}
           </span>
         </section>
@@ -88,7 +90,7 @@ const metricas = computed(() => {
             :key="m.label"
             class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-sm"
           >
-            <span class="material-symbols-outlined text-tertiary text-[28px] mb-2">{{ m.icon }}</span>
+            <AppIcon :name="m.icon" :size="24" class="text-tertiary mb-2" />
             <span class="font-headline-lg text-headline-lg text-on-surface">{{ m.value }}</span>
             <span class="font-label-md text-label-md text-on-surface-variant mt-1 uppercase">{{ m.label }}</span>
           </div>

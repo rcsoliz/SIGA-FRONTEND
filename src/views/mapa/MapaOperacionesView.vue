@@ -9,10 +9,21 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import 'leaflet.markercluster'
+import 'leaflet.markercluster/dist/MarkerCluster.css'
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import AppShell from '@/components/layout/AppShell.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import SyncBadge from '@/components/ui/SyncBadge.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
+
+// SVG del pin (Lucide "map-pin") incrustado a mano, igual que en
+// GpsCapture.vue — los marcadores de Leaflet se arman como HTML plano fuera
+// del árbol de Vue, así que no pueden montar el componente AppIcon.
+function svgPin(size: number, color: string): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>`
+}
 import { ApiError } from '@/api/client'
 import * as estanciasApi from '@/api/estancias'
 import type { EstanciaDto } from '@/types/dto'
@@ -25,7 +36,21 @@ const busqueda = ref('')
 
 const mapEl = ref<HTMLDivElement | null>(null)
 let map: L.Map | null = null
+let clusterGroup: L.MarkerClusterGroup | null = null
 const marcadores = new Map<string, L.Marker>()
+
+function iconoCluster(cantidad: number): L.DivIcon {
+  const talla = cantidad < 10 ? 40 : cantidad < 25 ? 48 : 56
+  return L.divIcon({
+    className: '',
+    html: `
+      <div class="bg-primary text-on-primary rounded-full border-4 shadow-md flex items-center justify-center font-bold" style="width:${talla}px;height:${talla}px;border-color:#fff;font-size:${talla < 48 ? 14 : 16}px">
+        ${cantidad}
+      </div>`,
+    iconSize: [talla, talla],
+    iconAnchor: [talla / 2, talla / 2],
+  })
+}
 
 function icono(estanciaId: string): L.DivIcon {
   const activa = seleccionada.value?.id === estanciaId
@@ -33,7 +58,7 @@ function icono(estanciaId: string): L.DivIcon {
     className: '',
     html: `
       <div class="${activa ? 'w-12 h-12 bg-primary border-4' : 'w-10 h-10 bg-surface-container-lowest border-2'} rounded-full border-outline-variant shadow-md flex items-center justify-center transition-all" style="${activa ? 'border-color:#fff' : ''}">
-        <span class="material-symbols-outlined ${activa ? 'filled' : ''}" style="font-size:${activa ? 24 : 20}px; color:${activa ? '#fff' : '#707973'}">location_on</span>
+        ${svgPin(activa ? 24 : 20, activa ? '#fff' : '#707973')}
       </div>`,
     iconSize: activa ? [48, 48] : [40, 40],
     iconAnchor: activa ? [24, 24] : [20, 20],
@@ -47,7 +72,15 @@ function refrescarIconos() {
 function seleccionar(e: EstanciaDto) {
   seleccionada.value = e
   refrescarIconos()
-  map?.panTo([e.latitud, e.longitud])
+  const marker = marcadores.get(e.id)
+  if (marker && clusterGroup) {
+    // Si el marcador está agrupado en un clúster, esto hace zoom hasta
+    // separarlo antes de centrar — de lo contrario quedaría oculto dentro
+    // del ícono de conteo.
+    clusterGroup.zoomToShowLayer(marker, () => map?.panTo([e.latitud, e.longitud]))
+  } else {
+    map?.panTo([e.latitud, e.longitud])
+  }
 }
 
 function cerrarPanel() {
@@ -90,13 +123,21 @@ function inicializarMapa() {
     maxZoom: 19,
   }).addTo(map)
 
+  clusterGroup = L.markerClusterGroup({
+    iconCreateFunction: (cluster) => iconoCluster(cluster.getChildCount()),
+    maxClusterRadius: 60,
+    spiderfyOnMaxZoom: true,
+  })
+
   const puntos: L.LatLngExpression[] = []
   for (const e of estancias.value) {
-    const marker = L.marker([e.latitud, e.longitud], { icon: icono(e.id) }).addTo(map)
+    const marker = L.marker([e.latitud, e.longitud], { icon: icono(e.id) })
     marker.on('click', () => seleccionar(e))
+    clusterGroup.addLayer(marker)
     marcadores.set(e.id, marker)
     puntos.push([e.latitud, e.longitud])
   }
+  map.addLayer(clusterGroup)
 
   if (puntos.length > 1) {
     map.fitBounds(L.latLngBounds(puntos), { padding: [60, 60] })
@@ -109,6 +150,7 @@ onMounted(cargar)
 onUnmounted(() => {
   map?.remove()
   map = null
+  clusterGroup = null
 })
 
 function ubicacionCompleta(e: EstanciaDto): string {
@@ -126,7 +168,7 @@ function ubicacionCompleta(e: EstanciaDto): string {
       <!-- Floating search -->
       <div class="absolute top-4 left-4 z-[1000] w-[calc(100%-2rem)] md:w-96">
         <div class="flex items-center bg-surface-container-lowest shadow-md rounded-full px-4 h-touch-target-min border border-outline-variant focus-within:border-primary transition-colors">
-          <span class="material-symbols-outlined text-on-surface-variant mr-3">search</span>
+          <AppIcon name="search" :size="20" class="text-on-surface-variant mr-3" />
           <input
             v-model="busqueda"
             type="text"
@@ -150,19 +192,20 @@ function ubicacionCompleta(e: EstanciaDto): string {
           <div class="p-6 border-b border-outline-variant relative">
             <button
               class="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-full p-2 transition-colors"
+              title="Cerrar"
               aria-label="Cerrar"
               @click="cerrarPanel"
             >
-              <span class="material-symbols-outlined">close</span>
+              <AppIcon name="close" :size="20" />
             </button>
             <div class="mt-4 flex items-start gap-4">
               <div class="w-14 h-14 rounded-xl bg-primary-container flex items-center justify-center text-on-primary-container shrink-0">
-                <span class="material-symbols-outlined text-[32px]">home_work</span>
+                <AppIcon name="home_work" :size="28" />
               </div>
               <div>
                 <h3 class="font-headline-lg text-headline-lg text-on-surface">{{ seleccionada.nombre }}</h3>
                 <div class="flex items-center gap-1.5 mt-1 text-on-surface-variant font-body-md text-body-md">
-                  <span class="material-symbols-outlined text-[16px]">person</span>
+                  <AppIcon name="person" :size="16" />
                   <span>{{ seleccionada.propietario }}</span>
                 </div>
               </div>
@@ -174,19 +217,19 @@ function ubicacionCompleta(e: EstanciaDto): string {
             <div class="bg-surface-container rounded-xl p-4 border border-outline-variant">
               <h4 class="font-label-md text-label-md text-on-surface-variant uppercase mb-3">Ubicación Registrada</h4>
               <p class="font-body-md text-body-md text-on-surface flex items-start gap-3">
-                <span class="material-symbols-outlined text-outline text-[20px]">map</span>
+                <AppIcon name="map" :size="20" class="text-outline" />
                 {{ ubicacionCompleta(seleccionada) }}
               </p>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
               <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-sm">
-                <span class="material-symbols-outlined text-tertiary text-[28px] mb-2">assignment</span>
+                <AppIcon name="dataset" :size="24" class="text-tertiary mb-2" />
                 <span class="font-headline-lg text-headline-lg text-on-surface">{{ seleccionada.cantidadCaptaciones }}</span>
                 <span class="font-label-md text-label-md text-on-surface-variant mt-1">CAPTACIONES</span>
               </div>
               <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-sm">
-                <span class="material-symbols-outlined text-tertiary text-[28px] mb-2">pets</span>
+                <AppIcon name="pets" :size="24" class="text-tertiary mb-2" />
                 <span class="font-headline-lg text-headline-lg text-on-surface">{{ seleccionada.totalCabezas }}</span>
                 <span class="font-label-md text-label-md text-on-surface-variant mt-1">TOTAL CABEZAS</span>
               </div>

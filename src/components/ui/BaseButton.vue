@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppIcon, { type NombreIcono } from './AppIcon.vue'
+
 withDefaults(
   defineProps<{
     type?: 'button' | 'submit'
@@ -7,7 +9,7 @@ withDefaults(
      * mockup lo pide explícitamente (ej. Login escritorio). Por defecto los
      * formularios usan rounded-lg, consistente con el resto de la app. */
     pill?: boolean
-    icon?: string
+    icon?: NombreIcono
     loading?: boolean
     disabled?: boolean
     block?: boolean
@@ -47,9 +49,7 @@ const variantClasses = {
     @click="$emit('click', $event)"
   >
     <span v-if="loading" class="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
-    <span v-else-if="icon" class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">
-      {{ icon }}
-    </span>
+    <AppIcon v-else-if="icon" :name="icon" :size="20" />
     <slot />
   </button>
 </template>

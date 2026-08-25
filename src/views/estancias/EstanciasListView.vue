@@ -6,12 +6,19 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import SyncBadge from '@/components/ui/SyncBadge.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import SkeletonTable from '@/components/ui/SkeletonTable.vue'
+import SkeletonCard from '@/components/ui/SkeletonCard.vue'
+import Pagination from '@/components/ui/Pagination.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
+import { usePaginacion } from '@/composables/usePaginacion'
 import { ApiError } from '@/api/client'
 import * as estanciasApi from '@/api/estancias'
 import type { EstanciaDto } from '@/types/dto'
 
 const auth = useAuthStore()
+const { mostrar } = useToast()
 const puedeCrear = computed(() => auth.rol === 'Captador')
 // Eliminar: 🔒 Administrador (EstanciasController.cs — [Authorize(Roles = "Administrador")] en DELETE)
 const puedeEliminar = computed(() => auth.rol === 'Administrador')
@@ -28,6 +35,8 @@ const estanciasFiltradas = computed(() => {
     (e) => e.nombre.toLowerCase().includes(termino) || e.propietario.toLowerCase().includes(termino),
   )
 })
+
+const { paginaActual, totalPaginas, itemsPagina, porPagina } = usePaginacion(estanciasFiltradas, 8)
 
 function ubicacion(e: EstanciaDto): string {
   return [e.departamento, e.provincia].filter(Boolean).join(' / ') || '—'
@@ -69,6 +78,7 @@ async function confirmarEliminacion() {
   try {
     await estanciasApi.eliminar(estanciaAEliminar.value.id)
     estancias.value = estancias.value.filter((e) => e.id !== estanciaAEliminar.value!.id)
+    mostrar('Estancia eliminada correctamente.')
     estanciaAEliminar.value = null
   } catch (error) {
     errorEliminar.value = error instanceof ApiError ? error.message : 'Ocurrió un error inesperado.'
@@ -98,32 +108,29 @@ async function confirmarEliminacion() {
 
       <!-- Search -->
       <div class="relative w-full sm:max-w-md">
-        <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">search</span>
+        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-outline flex"><AppIcon name="search" :size="20" /></span>
         <input
           v-model="busqueda"
           type="text"
           placeholder="Buscar por nombre o propietario..."
-          class="w-full h-[48px] pl-12 pr-4 bg-surface-container-lowest border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-primary font-body-md text-body-md text-on-surface placeholder:text-outline-variant outline-none transition-shadow shadow-sm"
+          class="w-full h-[48px] pl-12 pr-4 bg-surface-container-lowest border border-outline-variant rounded-full focus:ring-2 focus:ring-primary focus:border-primary font-body-md text-body-md text-on-surface placeholder:text-outline-variant outline-none transition-shadow shadow-sm"
         />
       </div>
 
       <AlertBanner v-if="errorMensaje" variant="error">{{ errorMensaje }}</AlertBanner>
 
       <!-- Loading skeleton -->
-      <div v-if="cargando" class="flex flex-col gap-gutter-mobile">
-        <div
-          v-for="n in 4"
-          :key="n"
-          class="h-24 rounded-xl bg-surface-container-lowest border border-outline-variant animate-pulse"
-        />
-      </div>
+      <template v-if="cargando">
+        <SkeletonTable class="hidden md:block" :columnas="7" />
+        <SkeletonCard class="md:hidden" :cantidad="4" />
+      </template>
 
       <!-- Empty state -->
       <div
         v-else-if="estanciasFiltradas.length === 0"
         class="flex flex-col items-center justify-center gap-stack-sm py-16 bg-surface-container-lowest rounded-xl border border-outline-variant"
       >
-        <span class="material-symbols-outlined text-[48px] text-outline-variant">home_work</span>
+        <AppIcon name="home_work" :size="44" class="text-outline-variant" />
         <p class="font-body-lg text-body-lg text-on-surface-variant">
           {{ busqueda ? 'No se encontraron estancias con ese criterio.' : 'No hay estancias registradas.' }}
         </p>
@@ -145,11 +152,11 @@ async function confirmarEliminacion() {
               </tr>
             </thead>
             <tbody class="divide-y divide-outline-variant">
-              <tr v-for="e in estanciasFiltradas" :key="e.id" class="hover:bg-surface-variant/50 transition-colors">
+              <tr v-for="e in itemsPagina" :key="e.id" class="hover:bg-surface-variant/50 transition-colors">
                 <td class="py-4 px-6">
                   <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center text-on-primary-container flex-shrink-0">
-                      <span class="material-symbols-outlined">location_city</span>
+                      <AppIcon name="location_city" :size="20" />
                     </div>
                     <span class="font-body-lg text-body-lg text-on-surface font-semibold">{{ e.nombre }}</span>
                   </div>
@@ -157,7 +164,7 @@ async function confirmarEliminacion() {
                 <td class="py-4 px-6 font-body-md text-body-md text-on-surface">{{ e.propietario }}</td>
                 <td class="py-4 px-6 font-body-md text-body-md text-on-surface-variant">
                   <span class="flex items-center gap-1">
-                    <span class="material-symbols-outlined text-[16px]">location_on</span>
+                    <AppIcon name="location_on" :size="16" />
                     {{ ubicacion(e) }}
                   </span>
                 </td>
@@ -171,25 +178,28 @@ async function confirmarEliminacion() {
                     <RouterLink
                       :to="{ name: 'captaciones', params: { estanciaId: e.id } }"
                       class="w-10 h-10 rounded-full inline-flex items-center justify-center text-on-surface-variant hover:bg-surface-variant transition-colors"
+                      title="Ver captaciones"
                       aria-label="Ver captaciones"
                     >
-                      <span class="material-symbols-outlined">dataset</span>
+                      <AppIcon name="dataset" :size="20" />
                     </RouterLink>
                     <RouterLink
                       :to="{ name: 'estancias-editar', params: { id: e.id } }"
                       class="w-10 h-10 rounded-full inline-flex items-center justify-center text-on-surface-variant hover:bg-surface-variant transition-colors"
+                      title="Editar estancia"
                       aria-label="Editar estancia"
                     >
-                      <span class="material-symbols-outlined">edit</span>
+                      <AppIcon name="edit" :size="20" />
                     </RouterLink>
                     <button
                       v-if="puedeEliminar"
                       type="button"
                       class="w-10 h-10 rounded-full inline-flex items-center justify-center text-on-surface-variant hover:bg-error-container hover:text-error transition-colors"
+                      title="Eliminar estancia"
                       aria-label="Eliminar estancia"
                       @click="pedirConfirmacion(e)"
                     >
-                      <span class="material-symbols-outlined">delete</span>
+                      <AppIcon name="delete" :size="20" />
                     </button>
                   </div>
                 </td>
@@ -202,7 +212,7 @@ async function confirmarEliminacion() {
       <!-- Mobile cards -->
       <div v-if="!cargando && estanciasFiltradas.length > 0" class="md:hidden flex flex-col gap-gutter-mobile">
         <div
-          v-for="e in estanciasFiltradas"
+          v-for="e in itemsPagina"
           :key="e.id"
           class="bg-surface-container-lowest rounded-xl p-margin-mobile shadow-sm border border-surface-variant flex flex-col gap-stack-sm"
         >
@@ -215,23 +225,25 @@ async function confirmarEliminacion() {
               <RouterLink
                 :to="{ name: 'estancias-editar', params: { id: e.id } }"
                 class="text-on-surface-variant h-8 w-8 flex items-center justify-center rounded-full hover:bg-surface-container-low"
+                title="Editar estancia"
                 aria-label="Editar estancia"
               >
-                <span class="material-symbols-outlined">edit</span>
+                <AppIcon name="edit" :size="18" />
               </RouterLink>
               <button
                 v-if="puedeEliminar"
                 type="button"
                 class="text-on-surface-variant h-8 w-8 flex items-center justify-center rounded-full hover:bg-error-container hover:text-error"
+                title="Eliminar estancia"
                 aria-label="Eliminar estancia"
                 @click="pedirConfirmacion(e)"
               >
-                <span class="material-symbols-outlined">delete</span>
+                <AppIcon name="delete" :size="18" />
               </button>
             </div>
           </div>
           <div class="flex items-center gap-1 text-on-surface-variant font-body-md text-body-md">
-            <span class="material-symbols-outlined text-[16px]">location_on</span>
+            <AppIcon name="location_on" :size="16" />
             {{ ubicacion(e) }}
           </div>
           <div class="flex gap-stack-sm mt-base flex-wrap">
@@ -239,11 +251,11 @@ async function confirmarEliminacion() {
               :to="{ name: 'captaciones', params: { estanciaId: e.id } }"
               class="flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded-md font-label-md text-label-md text-primary"
             >
-              <span class="material-symbols-outlined text-[14px]">dataset</span>
+              <AppIcon name="dataset" :size="14" />
               {{ e.cantidadCaptaciones }} Captaciones
             </RouterLink>
             <div class="flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded-md font-label-md text-label-md text-on-surface">
-              <span class="material-symbols-outlined text-[14px]">pets</span>
+              <AppIcon name="pets" :size="14" />
               {{ e.totalCabezas }} Cabezas
             </div>
           </div>
@@ -252,6 +264,14 @@ async function confirmarEliminacion() {
           </div>
         </div>
       </div>
+
+      <Pagination
+        v-if="!cargando && estanciasFiltradas.length > 0"
+        v-model="paginaActual"
+        :total-paginas="totalPaginas"
+        :total="estanciasFiltradas.length"
+        :por-pagina="porPagina"
+      />
     </div>
 
     <ConfirmDialog

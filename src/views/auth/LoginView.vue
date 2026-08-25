@@ -7,6 +7,8 @@ import { ApiError } from '@/api/client'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
+import ThemeToggle from '@/components/ui/ThemeToggle.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -15,6 +17,11 @@ const email = ref('')
 const password = ref('')
 const cargando = ref(false)
 const errorMensaje = ref<string | null>(null)
+
+// Se lee una sola vez y se limpia en la store para no repetir el aviso en
+// visitas futuras al Login (mejora #3 de docs/mejoras-frontend.md).
+const avisoSesionExpirada = ref(auth.sesionExpirada)
+auth.limpiarAvisoSesionExpirada()
 
 async function enviar() {
   errorMensaje.value = null
@@ -33,8 +40,9 @@ async function enviar() {
 <template>
   <!-- Mobile (<768px) — fiel a docs/stitch-html/01-login-mobile.html: tarjeta centrada -->
   <div
-    class="md:hidden min-h-screen bg-background text-on-surface flex items-center justify-center font-body-md antialiased p-margin-mobile"
+    class="md:hidden min-h-screen bg-background text-on-surface flex items-center justify-center font-body-md antialiased p-margin-mobile relative"
   >
+    <div class="absolute top-4 right-4"><ThemeToggle /></div>
     <main
       class="w-full max-w-sm bg-surface-container-lowest rounded-xl shadow-sm border border-surface-variant p-stack-lg flex flex-col gap-stack-lg"
     >
@@ -42,11 +50,15 @@ async function enviar() {
         <div
           class="h-16 w-16 bg-primary-container rounded-full flex items-center justify-center mb-stack-sm shadow-sm shadow-primary/5"
         >
-          <span class="material-symbols-outlined text-[32px] text-on-primary-container filled">pets</span>
+          <AppIcon name="agriculture" :size="30" class="text-on-primary-container" />
         </div>
         <h1 class="font-headline-lg text-headline-lg text-primary">SIGA</h1>
         <p class="font-body-md text-body-md text-on-surface-variant">Sistema de Registro y Captación de Ganado</p>
       </header>
+
+      <AlertBanner v-if="avisoSesionExpirada && !errorMensaje" variant="info">
+        Tu sesión expiró. Inicia sesión nuevamente.
+      </AlertBanner>
 
       <form class="flex flex-col gap-stack-md" @submit.prevent="enviar">
         <BaseInput
@@ -82,7 +94,7 @@ async function enviar() {
       <div class="absolute inset-0 bg-black/30" />
       <div class="relative z-10 p-12 h-full flex flex-col justify-between">
         <h1 class="font-headline-lg text-headline-lg text-white tracking-tight flex items-center gap-2">
-          <span class="material-symbols-outlined text-3xl filled">agriculture</span>
+          <AppIcon name="agriculture" :size="30" />
           SIGA
         </h1>
         <div class="max-w-md">
@@ -98,6 +110,7 @@ async function enviar() {
     </div>
 
     <div class="w-1/2 bg-surface flex flex-col justify-center items-center p-16 relative">
+      <div class="absolute top-8 right-8"><ThemeToggle /></div>
       <div class="w-full max-w-[400px]">
         <div class="mb-stack-lg">
           <h2 class="font-headline-lg text-headline-lg text-on-surface mb-2">Iniciar Sesión</h2>
@@ -106,6 +119,9 @@ async function enviar() {
           </p>
         </div>
 
+        <AlertBanner v-if="avisoSesionExpirada && !errorMensaje" variant="info" class="mb-stack-md">
+          Tu sesión expiró. Inicia sesión nuevamente.
+        </AlertBanner>
         <AlertBanner v-if="errorMensaje" variant="error" class="mb-stack-md">{{ errorMensaje }}</AlertBanner>
 
         <form class="flex flex-col gap-stack-md" @submit.prevent="enviar">

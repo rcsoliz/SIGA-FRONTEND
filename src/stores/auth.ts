@@ -8,6 +8,9 @@ import type { RolUsuario } from '@/types/enums'
 
 export const useAuthStore = defineStore('auth', () => {
   const sesion = ref<SesionActiva | null>(leerSesion())
+  /** true cuando la sesión se cerró sola (token vencido o 401), no por click
+   * manual en "Salir" — LoginView lo lee una vez para mostrar un aviso. */
+  const sesionExpirada = ref(false)
   let temporizadorExpiracion: ReturnType<typeof setTimeout> | null = null
 
   const estaAutenticado = computed(() => sesion.value !== null)
@@ -19,10 +22,10 @@ export const useAuthStore = defineStore('auth', () => {
     if (temporizadorExpiracion) clearTimeout(temporizadorExpiracion)
     const msRestantes = new Date(expiraEnUtc).getTime() - Date.now()
     if (msRestantes <= 0) {
-      cerrarSesion()
+      cerrarSesion('expirada')
       return
     }
-    temporizadorExpiracion = setTimeout(cerrarSesion, msRestantes)
+    temporizadorExpiracion = setTimeout(() => cerrarSesion('expirada'), msRestantes)
   }
 
   async function iniciarSesion(credenciales: LoginRequestDto): Promise<void> {
@@ -39,10 +42,17 @@ export const useAuthStore = defineStore('auth', () => {
     programarExpiracion(nuevaSesion.expiraEnUtc)
   }
 
-  function cerrarSesion(): void {
+  /** `motivo: 'expirada'` solo para los dos caminos automáticos (vencimiento
+   * de token, 401 del backend) — el botón "Salir" llama esto sin argumento. */
+  function cerrarSesion(motivo?: 'expirada'): void {
     if (temporizadorExpiracion) clearTimeout(temporizadorExpiracion)
     limpiarSesion()
     sesion.value = null
+    if (motivo === 'expirada') sesionExpirada.value = true
+  }
+
+  function limpiarAvisoSesionExpirada(): void {
+    sesionExpirada.value = false
   }
 
   // Si la sesión ya existía en localStorage (recarga de página), reprogramar
@@ -52,8 +62,18 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   window.addEventListener(EVENTO_NO_AUTORIZADO, () => {
-    cerrarSesion()
+    cerrarSesion('expirada')
   })
 
-  return { sesion, estaAutenticado, rol, nombre, usuarioId, iniciarSesion, cerrarSesion }
+  return {
+    sesion,
+    estaAutenticado,
+    rol,
+    nombre,
+    usuarioId,
+    sesionExpirada,
+    iniciarSesion,
+    cerrarSesion,
+    limpiarAvisoSesionExpirada,
+  }
 })

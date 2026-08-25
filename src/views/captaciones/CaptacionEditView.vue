@@ -8,13 +8,16 @@ import AppShell from '@/components/layout/AppShell.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import FormField from '@/components/ui/FormField.vue'
+import SkeletonForm from '@/components/ui/SkeletonForm.vue'
 import { ApiError } from '@/api/client'
+import { useToast } from '@/composables/useToast'
 import * as captacionesApi from '@/api/captaciones'
 import { EstadoCaptacionLabels, EstadoSanitarioLabels, type EstadoCaptacion, type EstadoSanitario } from '@/types/enums'
 
 const route = useRoute()
 const router = useRouter()
 const id = route.params.id as string
+const { mostrar } = useToast()
 
 const form = reactive({
   nombre: '',
@@ -70,6 +73,7 @@ async function guardar() {
       estadoSanitario: form.estadoSanitario as EstadoSanitario,
       potrero: form.potrero || null,
     })
+    mostrar('Captación actualizada correctamente.')
     await router.push({ name: 'captaciones-reporte', params: { id } })
   } catch (error) {
     errorMensaje.value = error instanceof ApiError ? error.message : 'Ocurrió un error inesperado.'
@@ -90,7 +94,7 @@ function cancelar() {
 
       <AlertBanner v-if="errorMensaje" variant="error">{{ errorMensaje }}</AlertBanner>
 
-      <div v-if="cargando" class="h-72 rounded-xl bg-surface-container-lowest border border-outline-variant animate-pulse" />
+      <SkeletonForm v-if="cargando" :campos="5" />
 
       <form
         v-else

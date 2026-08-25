@@ -6,10 +6,12 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import FormField from '@/components/ui/FormField.vue'
 import { ApiError } from '@/api/client'
+import { useToast } from '@/composables/useToast'
 import * as usuariosApi from '@/api/usuarios'
 import { RolUsuarioLabels, type RolUsuario } from '@/types/enums'
 
 const router = useRouter()
+const { mostrar } = useToast()
 
 const form = reactive({
   nombre: '',
@@ -39,6 +41,7 @@ async function guardar() {
       cargo: form.cargo || null,
       rol: form.rol,
     })
+    mostrar('Usuario creado correctamente.')
     await router.push({ name: 'usuarios' })
   } catch (error) {
     errorMensaje.value = error instanceof ApiError ? error.message : 'Ocurrió un error inesperado.'

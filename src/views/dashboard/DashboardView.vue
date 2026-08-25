@@ -36,24 +36,25 @@ const pesoChart = computed(() => datos.value?.serieMensual.map((s) => ({ mes: s.
 
 <template>
   <AppShell>
-    <div class="p-stack-md md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6">
+    <div class="p-stack-md md:p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-6">
       <h1 class="font-headline-lg text-headline-lg text-on-background">Dashboard de Gestión</h1>
 
       <AlertBanner v-if="errorMensaje" variant="error">{{ errorMensaje }}</AlertBanner>
 
       <div v-if="cargando" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div v-for="n in 3" :key="n" class="h-32 rounded-xl bg-surface-container-lowest border border-outline-variant animate-pulse" />
+        <div v-for="n in 3" :key="n" class="h-36 rounded-2xl bg-surface-container-lowest border border-outline-variant animate-pulse" />
       </div>
 
       <template v-else-if="datos">
         <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <KpiCard label="Total Cabezas Activas" :value="datos.totalCabezasActivas.toLocaleString('es-BO')" icon="pets" />
-          <KpiCard label="Captaciones Activas" :value="String(datos.captacionesActivas)" icon="location_on" />
+          <KpiCard label="Captaciones Activas" :value="String(datos.captacionesActivas)" icon="location_on" tono="tertiary" />
           <KpiCard
             label="Pendientes de Revisión"
             :value="String(datos.captacionesPendientesRevision)"
             icon="fact_check"
             :hint="datos.captacionesPendientesRevision > 0 ? 'Requieren atención' : 'Todo al día'"
+            :tono="datos.captacionesPendientesRevision > 0 ? 'secondary' : 'primary'"
           />
         </section>
 

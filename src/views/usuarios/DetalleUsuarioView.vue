@@ -7,13 +7,16 @@ import AlertBanner from '@/components/ui/AlertBanner.vue'
 import FormField from '@/components/ui/FormField.vue'
 import EstadoUsuarioBadge from '@/components/ui/EstadoUsuarioBadge.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import { ApiError } from '@/api/client'
+import { useToast } from '@/composables/useToast'
 import * as usuariosApi from '@/api/usuarios'
 import { EstadoUsuarioLabels, RolUsuarioLabels, TipoPermisoLabels, type EstadoUsuario, type TipoPermiso } from '@/types/enums'
 import type { UsuarioDetalleDto } from '@/types/dto'
 
 const route = useRoute()
 const id = route.params.id as string
+const { mostrar } = useToast()
 
 const usuario = ref<UsuarioDetalleDto | null>(null)
 const cargando = ref(true)
@@ -62,6 +65,7 @@ async function guardarEdicion() {
   try {
     await usuariosApi.actualizar(id, { nombre: formEdicion.nombre, cargo: formEdicion.cargo || null, estado: formEdicion.estado as EstadoUsuario })
     editando.value = false
+    mostrar('Usuario actualizado correctamente.')
     await cargar()
   } catch (error) {
     errorEdicion.value = error instanceof ApiError ? error.message : 'Ocurrió un error inesperado.'
@@ -88,6 +92,7 @@ async function agregarSector() {
     await usuariosApi.asignarSector(id, { nombreSector: nuevoSector.nombreSector, zona: nuevoSector.zona || null })
     nuevoSector.nombreSector = ''
     nuevoSector.zona = ''
+    mostrar('Sector asignado correctamente.')
     await cargar()
   } catch (error) {
     errorSector.value = error instanceof ApiError ? error.message : 'Ocurrió un error inesperado.'
@@ -102,6 +107,7 @@ async function confirmarQuitarSector() {
   try {
     await usuariosApi.quitarSector(id, sectorAEliminar.value.id)
     sectorAEliminar.value = null
+    mostrar('Sector quitado correctamente.')
     await cargar()
   } catch (error) {
     errorMensaje.value = error instanceof ApiError ? error.message : 'Ocurrió un error inesperado.'
@@ -120,6 +126,7 @@ async function confirmarRevocar() {
   try {
     await usuariosApi.revocarDispositivo(id, dispositivoARevocar.value.id)
     dispositivoARevocar.value = null
+    mostrar('Dispositivo revocado correctamente.')
     await cargar()
   } catch (error) {
     errorMensaje.value = error instanceof ApiError ? error.message : 'Ocurrió un error inesperado.'
@@ -148,6 +155,7 @@ async function agregarPermiso() {
   try {
     await usuariosApi.asignarPermiso(id, { tipoPermiso: nuevoPermiso.value })
     nuevoPermiso.value = ''
+    mostrar('Permiso asignado correctamente.')
     await cargar()
   } catch (error) {
     errorPermiso.value = error instanceof ApiError ? error.message : 'Ocurrió un error inesperado.'
@@ -170,7 +178,7 @@ async function agregarPermiso() {
           <div v-if="!editando" class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div class="flex items-start gap-4">
               <div class="w-16 h-16 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container shrink-0">
-                <span class="material-symbols-outlined text-[32px]">person</span>
+                <AppIcon name="person" :size="28" />
               </div>
               <div>
                 <h1 class="font-headline-lg text-headline-lg text-on-surface">{{ usuario.nombre }}</h1>
@@ -212,15 +220,16 @@ async function agregarPermiso() {
               :key="s.id"
               class="inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-full bg-tertiary-container/20 text-tertiary font-label-md text-label-md border border-tertiary/20"
             >
-              <span class="material-symbols-outlined text-[16px]">map</span>
+              <AppIcon name="map" :size="16" />
               {{ s.nombreSector }}<span v-if="s.zona" class="text-tertiary/70">· {{ s.zona }}</span>
               <button
                 type="button"
                 class="w-5 h-5 rounded-full hover:bg-tertiary/20 flex items-center justify-center"
+                title="Quitar sector"
                 aria-label="Quitar sector"
                 @click="sectorAEliminar = { id: s.id, nombreSector: s.nombreSector }"
               >
-                <span class="material-symbols-outlined text-[14px]">close</span>
+                <AppIcon name="close" :size="14" />
               </button>
             </span>
           </div>
@@ -240,7 +249,7 @@ async function agregarPermiso() {
           </div>
           <div v-for="d in usuario.dispositivos" :key="d.id" class="flex items-center justify-between gap-4 p-4 rounded-lg border border-outline-variant">
             <div class="flex items-center gap-3">
-              <span class="material-symbols-outlined text-on-surface-variant">smartphone</span>
+              <AppIcon name="smartphone" :size="20" class="text-on-surface-variant" />
               <div>
                 <p class="font-body-md text-body-md text-on-surface font-semibold">{{ d.identificadorDispositivo }}</p>
                 <p class="font-label-md text-label-md text-on-surface-variant">
@@ -277,7 +286,7 @@ async function agregarPermiso() {
               :key="p.id"
               class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-secondary-container/50 text-secondary font-label-md text-label-md border border-secondary/20"
             >
-              <span class="material-symbols-outlined text-[16px]">verified_user</span>
+              <AppIcon name="verified_user" :size="16" />
               {{ TipoPermisoLabels[p.tipoPermiso] }}
             </span>
           </div>

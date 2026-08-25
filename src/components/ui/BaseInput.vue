@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, useId } from 'vue'
+import AppIcon, { type NombreIcono } from './AppIcon.vue'
 
 const props = withDefaults(
   defineProps<{
     modelValue: string
     label: string
     type?: 'text' | 'email' | 'password' | 'tel' | 'number' | 'date'
-    icon?: string
+    icon?: NombreIcono
     placeholder?: string
     errorMessage?: string
     required?: boolean
@@ -42,8 +43,8 @@ const tieneError = computed(() => Boolean(props.errorMessage))
           : 'border-outline-variant focus-within:border-primary focus-within:ring-primary'
       "
     >
-      <span v-if="icon" class="material-symbols-outlined absolute left-4 text-on-surface-variant pointer-events-none">
-        {{ icon }}
+      <span v-if="icon" class="absolute left-4 text-on-surface-variant pointer-events-none flex">
+        <AppIcon :name="icon" :size="20" />
       </span>
       <input
         :id="id"
@@ -60,13 +61,12 @@ const tieneError = computed(() => Boolean(props.errorMessage))
       <button
         v-if="esPassword"
         type="button"
+        title="Mostrar u ocultar contraseña"
         aria-label="Mostrar u ocultar contraseña"
         class="absolute right-2 w-10 h-10 flex items-center justify-center text-on-surface-variant hover:text-on-surface focus:outline-none focus:ring-2 focus:ring-primary rounded-full transition-colors"
         @click="passwordVisible = !passwordVisible"
       >
-        <span class="material-symbols-outlined text-[20px]">
-          {{ passwordVisible ? 'visibility_off' : 'visibility' }}
-        </span>
+        <AppIcon :name="passwordVisible ? 'visibility_off' : 'visibility'" :size="20" />
       </button>
     </div>
     <p v-if="tieneError" class="font-body-md text-body-md text-error">{{ errorMessage }}</p>

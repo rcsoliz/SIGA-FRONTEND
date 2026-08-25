@@ -11,6 +11,8 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import EstadoCaptacionBadge from '@/components/ui/EstadoCaptacionBadge.vue'
 import EstadoSanitarioBadge from '@/components/ui/EstadoSanitarioBadge.vue'
+import SkeletonCard from '@/components/ui/SkeletonCard.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import { useAuthStore } from '@/stores/auth'
 import { ApiError } from '@/api/client'
 import * as captacionesApi from '@/api/captaciones'
@@ -56,7 +58,7 @@ onMounted(cargar)
   <AppShell>
     <div class="p-stack-md md:p-stack-lg flex flex-col gap-stack-lg max-w-[1400px] mx-auto w-full">
       <RouterLink :to="{ name: 'estancias' }" class="inline-flex items-center gap-1 text-primary font-label-md text-label-md w-fit">
-        <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+        <AppIcon name="arrow_back" :size="18" />
         Volver a Estancias
       </RouterLink>
 
@@ -76,15 +78,13 @@ onMounted(cargar)
 
       <AlertBanner v-if="errorMensaje" variant="error">{{ errorMensaje }}</AlertBanner>
 
-      <div v-if="cargando" class="flex flex-col gap-gutter-mobile">
-        <div v-for="n in 3" :key="n" class="h-28 rounded-xl bg-surface-container-lowest border border-outline-variant animate-pulse" />
-      </div>
+      <SkeletonCard v-if="cargando" :cantidad="3" />
 
       <div
         v-else-if="captaciones.length === 0"
         class="flex flex-col items-center justify-center gap-stack-sm py-16 bg-surface-container-lowest rounded-xl border border-outline-variant"
       >
-        <span class="material-symbols-outlined text-[48px] text-outline-variant">dataset</span>
+        <AppIcon name="dataset" :size="44" class="text-outline-variant" />
         <p class="font-body-lg text-body-lg text-on-surface-variant">No hay captaciones registradas para esta estancia.</p>
       </div>
 
