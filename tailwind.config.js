@@ -94,6 +94,7 @@ export default {
         'body-md': ['Inter', 'sans-serif'],
         'label-md': ['Inter', 'sans-serif'],
         button: ['Inter', 'sans-serif'],
+        'button-sm': ['Inter', 'sans-serif'],
       },
       fontSize: {
         // Único paso por encima de headline-lg: reservado para números
@@ -108,6 +109,11 @@ export default {
         'body-md': ['14px', { lineHeight: '20px', fontWeight: '400' }],
         'label-md': ['12px', { lineHeight: '16px', letterSpacing: '0.05em', fontWeight: '600' }],
         button: ['16px', { lineHeight: '24px', fontWeight: '600' }],
+        // Para acciones secundarias/de menor prioridad (crear-desde-encabezado,
+        // "Acceder como invitado") donde el botón de 16px se siente pesado —
+        // mismo peso 600, un paso más chico. No usar en botones primarios de
+        // formulario (Guardar, Iniciar Sesión, Confirmar).
+        'button-sm': ['14px', { lineHeight: '20px', fontWeight: '600' }],
       },
     },
   },

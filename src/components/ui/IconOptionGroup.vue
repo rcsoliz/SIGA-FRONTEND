@@ -17,7 +17,7 @@ defineEmits<{ 'update:modelValue': [value: string] }>()
 
 <template>
   <div class="flex flex-col gap-2">
-    <label class="text-label-md font-label-md text-on-surface-variant uppercase tracking-wider">{{ label }}</label>
+    <label class="text-label-md font-label-md text-on-surface-variant">{{ label }}</label>
     <div class="grid gap-2 sm:gap-3" :class="columns ?? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5'">
       <button
         v-for="opt in options"

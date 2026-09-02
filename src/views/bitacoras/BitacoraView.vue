@@ -9,9 +9,11 @@ import AlertBanner from '@/components/ui/AlertBanner.vue'
 import FormField from '@/components/ui/FormField.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useInvitadoStore } from '@/stores/invitado'
 import { useToast } from '@/composables/useToast'
 import { ApiError } from '@/api/client'
 import * as captacionesApi from '@/api/captaciones'
+import * as invitadoApi from '@/services/invitadoApi'
 import { BITACORAS, type TipoBitacora } from '@/config/bitacoras'
 import type { CaptacionGanadoDto } from '@/types/dto'
 
@@ -22,8 +24,9 @@ const route = useRoute()
 const captacionId = computed(() => route.params.captacionId as string)
 
 const auth = useAuthStore()
+const invitado = useInvitadoStore()
 const { mostrar } = useToast()
-const puedeCrear = computed(() => (config.value.soloCaptador ? auth.rol === 'Captador' : true))
+const puedeCrear = computed(() => (config.value.soloCaptador ? auth.rol === 'Captador' || invitado.activo : true))
 
 const captacion = ref<CaptacionGanadoDto | null>(null)
 const historial = ref<any[]>([])
@@ -44,10 +47,12 @@ async function cargar() {
   errorMensaje.value = null
   inicializarFormulario()
   try {
-    const [c, lista] = await Promise.all([
-      captacionesApi.obtener(captacionId.value),
-      config.value.listar(captacionId.value),
-    ])
+    const [c, lista] = invitado.activo
+      ? await Promise.all([
+          invitadoApi.obtenerCaptacionLocal(captacionId.value),
+          invitadoApi.listarBitacoraLocalPorCaptacion(props.tipo, captacionId.value),
+        ])
+      : await Promise.all([captacionesApi.obtener(captacionId.value), config.value.listar(captacionId.value)])
     captacion.value = c
     historial.value = lista
   } catch (error) {
@@ -74,7 +79,9 @@ async function registrar() {
   guardando.value = true
   try {
     const payload = config.value.construirPayload(form, captacionId.value, new Date().toISOString())
-    const creado = await config.value.crear(payload)
+    const creado = invitado.activo
+      ? await invitadoApi.crearBitacoraLocal(props.tipo, payload)
+      : await config.value.crear(payload)
     historial.value = [creado, ...historial.value]
     mostrar('Registro guardado correctamente.')
     inicializarFormulario()
@@ -130,7 +137,7 @@ async function registrar() {
                 :step="campo.step"
               />
               <AlertBanner v-if="errorForm" variant="error">{{ errorForm }}</AlertBanner>
-              <BaseButton type="submit" icon="save" :loading="guardando">Registrar</BaseButton>
+              <BaseButton type="submit" :loading="guardando">Registrar</BaseButton>
             </form>
           </div>
           <AlertBanner v-else variant="info">

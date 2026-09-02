@@ -203,7 +203,7 @@ async function agregarPermiso() {
             <FormField v-model="formEdicion.estado" type="select" label="Estado" required :options="estadoOptions" />
             <div class="flex gap-stack-sm">
               <BaseButton variant="secondary" type="button" :block="false" @click="editando = false">Cancelar</BaseButton>
-              <BaseButton type="submit" icon="save" :loading="guardandoEdicion" :block="false">Guardar</BaseButton>
+              <BaseButton type="submit" :loading="guardandoEdicion" :block="false">Guardar</BaseButton>
             </div>
           </form>
         </section>
@@ -234,7 +234,7 @@ async function agregarPermiso() {
             </span>
           </div>
           <div class="flex flex-col sm:flex-row gap-stack-sm items-start sm:items-end pt-2 border-t border-outline-variant">
-            <FormField v-model="nuevoSector.nombreSector" label="Nuevo Sector" placeholder="Ej. Sector Norte" class="flex-1 w-full" />
+            <FormField v-model="nuevoSector.nombreSector" label="Nuevo sector" placeholder="Ej. Sector Norte" class="flex-1 w-full" />
             <FormField v-model="nuevoSector.zona" label="Zona (opcional)" placeholder="Ej. Zona A" class="flex-1 w-full" />
             <BaseButton icon="add" :block="false" :loading="agregandoSector" class="w-full sm:w-auto" @click="agregarSector">Asignar</BaseButton>
           </div>
@@ -291,7 +291,7 @@ async function agregarPermiso() {
             </span>
           </div>
           <div v-if="permisosDisponibles.length > 0" class="flex flex-col sm:flex-row gap-stack-sm items-start sm:items-end pt-2 border-t border-outline-variant">
-            <FormField v-model="nuevoPermiso" type="select" label="Nuevo Permiso" :options="permisosDisponibles" class="flex-1 w-full" />
+            <FormField v-model="nuevoPermiso" type="select" label="Nuevo permiso" :options="permisosDisponibles" class="flex-1 w-full" />
             <BaseButton icon="add" :block="false" :loading="agregandoPermiso" class="w-full sm:w-auto" @click="agregarPermiso">Asignar</BaseButton>
           </div>
           <AlertBanner v-if="errorPermiso" variant="error">{{ errorPermiso }}</AlertBanner>

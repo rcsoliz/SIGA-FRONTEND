@@ -11,15 +11,18 @@ import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import Pagination from '@/components/ui/Pagination.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useInvitadoStore } from '@/stores/invitado'
 import { useToast } from '@/composables/useToast'
 import { usePaginacion } from '@/composables/usePaginacion'
 import { ApiError } from '@/api/client'
 import * as estanciasApi from '@/api/estancias'
+import * as invitadoApi from '@/services/invitadoApi'
 import type { EstanciaDto } from '@/types/dto'
 
 const auth = useAuthStore()
+const invitado = useInvitadoStore()
 const { mostrar } = useToast()
-const puedeCrear = computed(() => auth.rol === 'Captador')
+const puedeCrear = computed(() => auth.rol === 'Captador' || invitado.activo)
 // Eliminar: 🔒 Administrador (EstanciasController.cs — [Authorize(Roles = "Administrador")] en DELETE)
 const puedeEliminar = computed(() => auth.rol === 'Administrador')
 
@@ -46,7 +49,7 @@ async function cargar() {
   cargando.value = true
   errorMensaje.value = null
   try {
-    estancias.value = await estanciasApi.listar()
+    estancias.value = invitado.activo ? await invitadoApi.listarEstanciasLocal() : await estanciasApi.listar()
   } catch (error) {
     errorMensaje.value = error instanceof ApiError ? error.message : 'Ocurrió un error inesperado.'
   } finally {
@@ -90,7 +93,7 @@ async function confirmarEliminacion() {
 
 <template>
   <AppShell>
-    <div class="p-stack-md md:p-stack-lg flex flex-col gap-stack-lg max-w-[1400px] mx-auto w-full">
+    <div class="p-stack-md md:p-stack-lg flex flex-col gap-stack-lg w-full">
       <!-- Header -->
       <div
         class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface-container-lowest p-stack-md rounded-xl shadow-sm border border-outline-variant"
@@ -102,7 +105,7 @@ async function confirmarEliminacion() {
           </p>
         </div>
         <RouterLink v-if="puedeCrear" :to="{ name: 'estancias-nueva' }" class="w-full sm:w-auto">
-          <BaseButton icon="add" class="sm:w-auto">Nueva Estancia</BaseButton>
+          <BaseButton icon="add" size="sm" class="sm:w-auto">Nueva Estancia</BaseButton>
         </RouterLink>
       </div>
 
@@ -184,6 +187,7 @@ async function confirmarEliminacion() {
                       <AppIcon name="dataset" :size="20" />
                     </RouterLink>
                     <RouterLink
+                      v-if="!invitado.activo"
                       :to="{ name: 'estancias-editar', params: { id: e.id } }"
                       class="w-10 h-10 rounded-full inline-flex items-center justify-center text-on-surface-variant hover:bg-surface-variant transition-colors"
                       title="Editar estancia"
@@ -223,6 +227,7 @@ async function confirmarEliminacion() {
             </div>
             <div class="flex items-center gap-1">
               <RouterLink
+                v-if="!invitado.activo"
                 :to="{ name: 'estancias-editar', params: { id: e.id } }"
                 class="text-on-surface-variant h-8 w-8 flex items-center justify-center rounded-full hover:bg-surface-container-low"
                 title="Editar estancia"

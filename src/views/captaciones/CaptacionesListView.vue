@@ -14,16 +14,19 @@ import EstadoSanitarioBadge from '@/components/ui/EstadoSanitarioBadge.vue'
 import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useInvitadoStore } from '@/stores/invitado'
 import { ApiError } from '@/api/client'
 import * as captacionesApi from '@/api/captaciones'
 import * as estanciasApi from '@/api/estancias'
+import * as invitadoApi from '@/services/invitadoApi'
 import type { CaptacionGanadoDto, EstanciaDto } from '@/types/dto'
 
 const route = useRoute()
 const estanciaId = computed(() => route.params.estanciaId as string)
 
 const auth = useAuthStore()
-const puedeCrear = computed(() => auth.rol === 'Captador')
+const invitado = useInvitadoStore()
+const puedeCrear = computed(() => auth.rol === 'Captador' || invitado.activo)
 
 const estancia = ref<EstanciaDto | null>(null)
 const captaciones = ref<CaptacionGanadoDto[]>([])
@@ -38,10 +41,15 @@ async function cargar() {
   cargando.value = true
   errorMensaje.value = null
   try {
-    const [e, lista] = await Promise.all([
-      estanciasApi.obtener(estanciaId.value),
-      captacionesApi.listarPorEstancia(estanciaId.value),
-    ])
+    const [e, lista] = invitado.activo
+      ? await Promise.all([
+          invitadoApi.obtenerEstanciaLocal(estanciaId.value),
+          invitadoApi.listarCaptacionesLocalPorEstancia(estanciaId.value),
+        ])
+      : await Promise.all([
+          estanciasApi.obtener(estanciaId.value),
+          captacionesApi.listarPorEstancia(estanciaId.value),
+        ])
     estancia.value = e
     captaciones.value = lista
   } catch (error) {
@@ -72,7 +80,7 @@ onMounted(cargar)
           </p>
         </div>
         <RouterLink v-if="puedeCrear" :to="{ name: 'captaciones-nueva', params: { estanciaId } }" class="w-full sm:w-auto">
-          <BaseButton icon="add" class="sm:w-auto">Nueva Captación</BaseButton>
+          <BaseButton icon="add" size="sm" class="sm:w-auto">Nueva Captación</BaseButton>
         </RouterLink>
       </div>
 

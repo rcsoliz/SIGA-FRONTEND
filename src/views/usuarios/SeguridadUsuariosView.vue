@@ -51,7 +51,7 @@ function formatearFecha(iso: string): string {
           <p class="font-body-md text-body-md text-on-surface-variant mt-1">Gestión de cuentas, roles y permisos del sistema.</p>
         </div>
         <RouterLink :to="{ name: 'usuarios-nuevo' }" class="w-full sm:w-auto">
-          <BaseButton icon="person_add" class="sm:w-auto">Nuevo Usuario</BaseButton>
+          <BaseButton icon="person_add" size="sm" class="sm:w-auto">Nuevo Usuario</BaseButton>
         </RouterLink>
       </div>
 

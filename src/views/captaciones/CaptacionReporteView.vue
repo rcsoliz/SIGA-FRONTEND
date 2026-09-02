@@ -14,9 +14,11 @@ import EstadoCaptacionBadge from '@/components/ui/EstadoCaptacionBadge.vue'
 import EstadoSanitarioBadge from '@/components/ui/EstadoSanitarioBadge.vue'
 import AppIcon, { type NombreIcono } from '@/components/ui/AppIcon.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useInvitadoStore } from '@/stores/invitado'
 import { useToast } from '@/composables/useToast'
 import { ApiError } from '@/api/client'
 import * as captacionesApi from '@/api/captaciones'
+import * as invitadoApi from '@/services/invitadoApi'
 import { CategoriaGanadoLabels, TipoManejoAlimentarioLabels } from '@/types/enums'
 import type { CaptacionGanadoDto } from '@/types/dto'
 
@@ -24,6 +26,7 @@ const route = useRoute()
 const router = useRouter()
 const id = route.params.id as string
 const auth = useAuthStore()
+const invitado = useInvitadoStore()
 const { mostrar } = useToast()
 // Eliminar: 🔒 Administrador (CaptacionesController.cs — [Authorize(Roles = "Administrador")] en DELETE)
 const puedeEliminar = computed(() => auth.rol === 'Administrador')
@@ -48,7 +51,9 @@ async function cargar() {
   cargando.value = true
   errorMensaje.value = null
   try {
-    captacion.value = await captacionesApi.obtener(id)
+    captacion.value = invitado.activo
+      ? await invitadoApi.obtenerCaptacionLocal(id)
+      : await captacionesApi.obtener(id)
   } catch (error) {
     errorMensaje.value = error instanceof ApiError ? error.message : 'Ocurrió un error inesperado.'
   } finally {
@@ -129,11 +134,15 @@ const metricas = computed(() => {
             </div>
           </div>
           <div class="flex items-center gap-2 w-full md:w-auto">
-            <RouterLink :to="{ name: 'captaciones-editar', params: { id: captacion.id } }" class="flex-1 md:flex-none">
+            <RouterLink
+              v-if="!invitado.activo"
+              :to="{ name: 'captaciones-editar', params: { id: captacion.id } }"
+              class="flex-1 md:flex-none"
+            >
               <BaseButton icon="edit" pill class="md:w-auto">Editar Captación</BaseButton>
             </RouterLink>
             <button
-              v-if="puedeEliminar"
+              v-if="puedeEliminar && !invitado.activo"
               type="button"
               class="w-touch-target-min h-touch-target-min shrink-0 rounded-full inline-flex items-center justify-center text-on-surface-variant border-2 border-outline-variant hover:bg-error-container hover:text-error hover:border-error/20 transition-colors"
               title="Eliminar captación"

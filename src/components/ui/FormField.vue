@@ -2,10 +2,10 @@
 // Estilo de campo para formularios de captura de datos (Estancia, Captación,
 // bitácoras, Usuario...) — distinto del BaseInput de Login a propósito: los
 // mockups de "Registro de Estancia" (desktop y mobile) usan consistentemente
-// un patrón de tarjeta con label en mayúsculas arriba, sin ícono, mientras
-// que Login usa inputs con ícono en píldora. En mobile el campo completo es
-// una tarjeta con borde/sombra e input sin borde propio; en desktop (md+) el
-// input lleva su propio borde y la tarjeta desaparece.
+// un patrón de tarjeta con label arriba, sin ícono, mientras que Login usa
+// inputs con ícono en píldora. En mobile el campo completo es una tarjeta
+// con borde/sombra e input sin borde propio; en desktop (md+) el input
+// lleva su propio borde y la tarjeta desaparece.
 import { computed, ref, useId } from 'vue'
 
 const props = withDefaults(
@@ -72,7 +72,7 @@ const fieldClasses =
     class="flex flex-col gap-1 md:gap-2 bg-surface-container-lowest md:bg-transparent p-4 md:p-0 rounded-xl md:rounded-none shadow-sm md:shadow-none border md:border-none transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary md:focus-within:ring-0"
     :class="errorMostrado ? 'border-error' : 'border-outline-variant/50'"
   >
-    <label :for="id" class="text-label-md font-label-md text-on-surface-variant uppercase tracking-wider flex items-center gap-1">
+    <label :for="id" class="text-label-md font-label-md text-on-surface-variant flex items-center gap-1">
       {{ label }}
       <span v-if="required" class="text-error text-body-lg leading-none">*</span>
     </label>

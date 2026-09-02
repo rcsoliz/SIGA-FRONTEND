@@ -89,6 +89,11 @@ typography:
     fontSize: "16px"
     fontWeight: 600
     lineHeight: "24px"
+  button-sm:
+    fontFamily: "Inter, sans-serif"
+    fontSize: "14px"
+    fontWeight: 600
+    lineHeight: "20px"
 rounded:
   DEFAULT: "4px"
   lg: "8px"
@@ -221,11 +226,12 @@ Three brand hues on a near-neutral M3 surface ramp; color carries meaning (state
 - **Headline Medium** (600, 20px/28px, -0.01em): section/card/dialog titles, the "SIGA" wordmark.
 - **Body Large** (400, 16px/24px): primary form input text, GPS coordinate readout.
 - **Body Medium** (400, 14px/20px): body copy, descriptions, table cells, toast messages.
-- **Label Medium** (600, 12px/16px, 0.05em, uppercase in form field labels): field labels, badges, nav labels, pagination text.
-- **Button** (600, 16px/24px): all button and action-link text.
+- **Label Medium** (600, 12px/16px, 0.05em): badges, nav labels, pagination text, table column headers (uppercase in table headers only — see Named Rules). Form field labels (`FormField.vue`, `IconOptionGroup.vue`) use this same size/weight but in sentence case, not uppercase.
+- **Button** (600, 16px/24px): primary form-submit and confirm actions (Guardar, Iniciar Sesión, Confirmar y Guardar Todo).
+- **Button Small** (600, 14px/20px): lower-priority actions — header "crear nuevo X" buttons on list views, "Acceder como invitado" — same weight as Button, one step down so they don't compete with the screen's primary action.
 
 ### Named Rules
-**The Uppercase-Label Rule.** Form field labels (`FormField.vue`) are Label Medium set uppercase with wide tracking — this is the one place the system uses case as a hierarchy signal, and it is reserved for labels only, never for headings or buttons.
+**The Uppercase-Header Rule.** Data-table column headers (`<th>` in list views) are Label Medium set uppercase with wide tracking — reserved for table headers only. Form field labels use the same Label Medium size/weight in normal sentence case ("Nombre completo", not "NOMBRE COMPLETO") — uppercase is not used as a hierarchy signal on labels, headings, or buttons.
 
 ## Layout
 

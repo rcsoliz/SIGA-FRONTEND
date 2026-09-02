@@ -10,11 +10,14 @@ import SkeletonForm from '@/components/ui/SkeletonForm.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import { ApiError } from '@/api/client'
 import * as estanciasApi from '@/api/estancias'
+import * as invitadoApi from '@/services/invitadoApi'
+import { useInvitadoStore } from '@/stores/invitado'
 import { useToast } from '@/composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
 const { mostrar } = useToast()
+const invitado = useInvitadoStore()
 
 const id = computed(() => route.params.id as string | undefined)
 const esEdicion = computed(() => Boolean(id.value))
@@ -95,7 +98,7 @@ async function guardar() {
         municipio: form.municipio,
       })
     } else {
-      await estanciasApi.crear({
+      const payload = {
         nombre: form.nombre,
         propietario: form.propietario,
         representante: form.representante,
@@ -108,7 +111,9 @@ async function guardar() {
         provincia: form.provincia,
         municipio: form.municipio,
         fechaCreacionLocal: new Date().toISOString(),
-      })
+      }
+      if (invitado.activo) await invitadoApi.crearEstanciaLocal(payload)
+      else await estanciasApi.crear(payload)
     }
     mostrar(esEdicion.value ? 'Estancia actualizada correctamente.' : 'Estancia creada correctamente.')
     await router.push({ name: 'estancias' })
@@ -152,14 +157,14 @@ function cancelar() {
         @submit.prevent="guardar"
       >
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-gutter-mobile md:gap-y-6">
-          <FormField v-model="form.nombre" label="Nombre de la Estancia" required placeholder="Ej. La Candelaria" />
+          <FormField v-model="form.nombre" label="Nombre de la estancia" required placeholder="Ej. La Candelaria" />
           <FormField v-model="form.propietario" label="Propietario" required placeholder="Nombre o Razón Social" />
           <FormField v-model="form.representante" label="Representante" placeholder="Nombre del encargado o apoderado" />
           <FormField v-model="form.telefono" label="Teléfono" type="tel" placeholder="Ej. 70112233" />
           <FormField v-model="form.renspa" label="RENSPA" placeholder="Número de registro oficial" />
           <FormField
             v-model="form.hectareasTotales"
-            label="Hectáreas Totales"
+            label="Hectáreas totales"
             type="number"
             step="0.01"
             suffix="ha"
@@ -193,7 +198,7 @@ function cancelar() {
 
         <div class="flex flex-col-reverse md:flex-row md:justify-end gap-stack-sm md:gap-4 md:pt-6 md:border-t md:border-outline-variant mt-2">
           <BaseButton variant="secondary" type="button" class="md:w-auto" @click="cancelar">Cancelar</BaseButton>
-          <BaseButton type="submit" icon="save" :loading="guardando" class="md:w-auto">
+          <BaseButton type="submit" :loading="guardando" class="md:w-auto">
             {{ esEdicion ? 'Guardar Cambios' : 'Guardar Estancia' }}
           </BaseButton>
         </div>

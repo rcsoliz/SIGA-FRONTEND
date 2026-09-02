@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useInvitadoStore } from '@/stores/invitado'
 import type { RolUsuario } from '@/types/enums'
 
 /** Ruta de aterrizaje por rol tras iniciar sesión (Etapa 1). Se reemplaza por
@@ -22,14 +23,14 @@ const router = createRouter({
       path: '/estancias',
       name: 'estancias',
       component: () => import('@/views/estancias/EstanciasListView.vue'),
-      meta: { requiereAuth: true, roles: ['Captador', 'Administrador'] as RolUsuario[] },
+      meta: { requiereAuth: true, roles: ['Captador', 'Administrador'] as RolUsuario[], permiteInvitado: true },
     },
     {
       // Crear: 🔒 Captador (EstanciasController.cs — [Authorize(Roles = "Captador")] en POST)
       path: '/estancias/nueva',
       name: 'estancias-nueva',
       component: () => import('@/views/estancias/EstanciaFormView.vue'),
-      meta: { requiereAuth: true, roles: ['Captador'] as RolUsuario[] },
+      meta: { requiereAuth: true, roles: ['Captador'] as RolUsuario[], permiteInvitado: true },
     },
     {
       // Editar: cualquier usuario autenticado (PUT sin restricción de rol en el backend)
@@ -42,20 +43,20 @@ const router = createRouter({
       path: '/estancias/:estanciaId/captaciones',
       name: 'captaciones',
       component: () => import('@/views/captaciones/CaptacionesListView.vue'),
-      meta: { requiereAuth: true, roles: ['Captador', 'Administrador'] as RolUsuario[] },
+      meta: { requiereAuth: true, roles: ['Captador', 'Administrador'] as RolUsuario[], permiteInvitado: true },
     },
     {
       // Crear: 🔒 Captador (CaptacionesController.cs — [Authorize(Roles = "Captador")] en POST)
       path: '/estancias/:estanciaId/captaciones/nueva',
       name: 'captaciones-nueva',
       component: () => import('@/views/captaciones/CaptacionFormView.vue'),
-      meta: { requiereAuth: true, roles: ['Captador'] as RolUsuario[] },
+      meta: { requiereAuth: true, roles: ['Captador'] as RolUsuario[], permiteInvitado: true },
     },
     {
       path: '/captaciones/:id',
       name: 'captaciones-reporte',
       component: () => import('@/views/captaciones/CaptacionReporteView.vue'),
-      meta: { requiereAuth: true, roles: ['Captador', 'Administrador'] as RolUsuario[] },
+      meta: { requiereAuth: true, roles: ['Captador', 'Administrador'] as RolUsuario[], permiteInvitado: true },
     },
     {
       // Editar cabecera: cualquier usuario autenticado (PUT sin restricción de rol)
@@ -71,28 +72,28 @@ const router = createRouter({
       name: 'bitacora-pesaje',
       component: () => import('@/views/bitacoras/BitacoraView.vue'),
       props: { tipo: 'Pesaje' },
-      meta: { requiereAuth: true, roles: ['Captador', 'Administrador'] as RolUsuario[] },
+      meta: { requiereAuth: true, roles: ['Captador', 'Administrador'] as RolUsuario[], permiteInvitado: true },
     },
     {
       path: '/captaciones/:captacionId/sanitario',
       name: 'bitacora-sanitario',
       component: () => import('@/views/bitacoras/BitacoraView.vue'),
       props: { tipo: 'Sanitario' },
-      meta: { requiereAuth: true, roles: ['Captador', 'Administrador'] as RolUsuario[] },
+      meta: { requiereAuth: true, roles: ['Captador', 'Administrador'] as RolUsuario[], permiteInvitado: true },
     },
     {
       path: '/captaciones/:captacionId/movimiento',
       name: 'bitacora-movimiento',
       component: () => import('@/views/bitacoras/BitacoraView.vue'),
       props: { tipo: 'Movimiento' },
-      meta: { requiereAuth: true, roles: ['Captador', 'Administrador'] as RolUsuario[] },
+      meta: { requiereAuth: true, roles: ['Captador', 'Administrador'] as RolUsuario[], permiteInvitado: true },
     },
     {
       path: '/captaciones/:captacionId/alimentacion',
       name: 'bitacora-alimentacion',
       component: () => import('@/views/bitacoras/BitacoraView.vue'),
       props: { tipo: 'Alimentacion' },
-      meta: { requiereAuth: true, roles: ['Captador', 'Administrador'] as RolUsuario[] },
+      meta: { requiereAuth: true, roles: ['Captador', 'Administrador'] as RolUsuario[], permiteInvitado: true },
     },
     {
       path: '/mapa',
@@ -170,12 +171,14 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const auth = useAuthStore()
+  const invitado = useInvitadoStore()
 
   if (to.meta.soloInvitado && auth.estaAutenticado) {
     return RUTA_INICIO_POR_ROL[auth.rol!]
   }
 
   if (to.meta.requiereAuth && !auth.estaAutenticado) {
+    if (invitado.activo && to.meta.permiteInvitado) return true
     return { name: 'login' }
   }
 

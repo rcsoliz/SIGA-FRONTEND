@@ -76,9 +76,9 @@ export const BITACORAS: Record<TipoBitacora, BitacoraConfig> = {
     descripcion: 'Ingrese los datos de peso para el grupo seleccionado.',
     soloCaptador: true,
     campos: [
-      { key: 'fecha', label: 'Fecha del Pesaje', type: 'date', required: true },
-      { key: 'pesoPromedioKg', label: 'Peso Promedio', type: 'number', step: '0.1', suffix: 'kg', required: true },
-      { key: 'cantidadCabezasPesadas', label: 'Cantidad de Cabezas Pesadas', type: 'number' },
+      { key: 'fecha', label: 'Fecha del pesaje', type: 'date', required: true },
+      { key: 'pesoPromedioKg', label: 'Peso promedio', type: 'number', step: '0.1', suffix: 'kg', required: true },
+      { key: 'cantidadCabezasPesadas', label: 'Cantidad de cabezas pesadas', type: 'number' },
       { key: 'observaciones', label: 'Observaciones', type: 'textarea' },
     ],
     columnas: [
@@ -114,9 +114,9 @@ export const BITACORAS: Record<TipoBitacora, BitacoraConfig> = {
     descripcion: 'Registre eventos de salud, tratamientos o controles del grupo.',
     soloCaptador: false,
     campos: [
-      { key: 'fecha', label: 'Fecha del Evento', type: 'date', required: true },
-      { key: 'tipoEvento', label: 'Tipo de Evento', type: 'select', required: true, options: opcionesTipoEvento },
-      { key: 'productoTratamiento', label: 'Producto / Tratamiento', type: 'text' },
+      { key: 'fecha', label: 'Fecha del evento', type: 'date', required: true },
+      { key: 'tipoEvento', label: 'Tipo de evento', type: 'select', required: true, options: opcionesTipoEvento },
+      { key: 'productoTratamiento', label: 'Producto / tratamiento', type: 'text' },
       { key: 'observaciones', label: 'Observaciones', type: 'textarea' },
     ],
     columnas: [
@@ -154,9 +154,9 @@ export const BITACORAS: Record<TipoBitacora, BitacoraConfig> = {
     descripcion: 'Registre traslados de ganado entre potreros o corrales.',
     soloCaptador: true,
     campos: [
-      { key: 'fecha', label: 'Fecha del Movimiento', type: 'date', required: true },
-      { key: 'tipoGanado', label: 'Tipo de Ganado', type: 'select', required: true, options: opcionesCategoria },
-      { key: 'cantidadCabezas', label: 'Cantidad de Cabezas', type: 'number', required: true },
+      { key: 'fecha', label: 'Fecha del movimiento', type: 'date', required: true },
+      { key: 'tipoGanado', label: 'Tipo de ganado', type: 'select', required: true, options: opcionesCategoria },
+      { key: 'cantidadCabezas', label: 'Cantidad de cabezas', type: 'number', required: true },
       { key: 'origen', label: 'Origen', type: 'text', required: true, },
       { key: 'destino', label: 'Destino', type: 'text', required: true },
     ],
@@ -195,9 +195,9 @@ export const BITACORAS: Record<TipoBitacora, BitacoraConfig> = {
     soloCaptador: true,
     campos: [
       { key: 'fecha', label: 'Fecha', type: 'date', required: true },
-      { key: 'tipoAlimentacion', label: 'Tipo de Alimentación', type: 'select', required: true, options: opcionesAlimentacion },
-      { key: 'racionBaseKgAnimal', label: 'Ración Base', type: 'number', step: '0.1', suffix: 'kg/animal' },
-      { key: 'suplementoProteicoKgAnimal', label: 'Suplemento Proteico', type: 'number', step: '0.1', suffix: 'kg/animal' },
+      { key: 'tipoAlimentacion', label: 'Tipo de alimentación', type: 'select', required: true, options: opcionesAlimentacion },
+      { key: 'racionBaseKgAnimal', label: 'Ración base', type: 'number', step: '0.1', suffix: 'kg/animal' },
+      { key: 'suplementoProteicoKgAnimal', label: 'Suplemento proteico', type: 'number', step: '0.1', suffix: 'kg/animal' },
       { key: 'observaciones', label: 'Observaciones', type: 'textarea' },
     ],
     columnas: [

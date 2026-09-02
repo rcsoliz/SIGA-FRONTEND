@@ -12,6 +12,8 @@ import { ApiError } from '@/api/client'
 import { useToast } from '@/composables/useToast'
 import * as captacionesApi from '@/api/captaciones'
 import * as estanciasApi from '@/api/estancias'
+import * as invitadoApi from '@/services/invitadoApi'
+import { useInvitadoStore } from '@/stores/invitado'
 import type { CategoriaGanado, TipoManejoAlimentario } from '@/types/enums'
 import { CategoriaGanadoLabels, TipoManejoAlimentarioLabels } from '@/types/enums'
 import type { CreateDetalleLoteGanadoDto, EstanciaDto } from '@/types/dto'
@@ -19,6 +21,7 @@ import type { CreateDetalleLoteGanadoDto, EstanciaDto } from '@/types/dto'
 const route = useRoute()
 const router = useRouter()
 const { mostrar } = useToast()
+const invitado = useInvitadoStore()
 const estanciaId = computed(() => route.params.estanciaId as string)
 
 const estancia = ref<EstanciaDto | null>(null)
@@ -186,7 +189,9 @@ const errorMensaje = ref<string | null>(null)
 
 async function cargarEstancia() {
   try {
-    estancia.value = await estanciasApi.obtener(estanciaId.value)
+    estancia.value = invitado.activo
+      ? await invitadoApi.obtenerEstanciaLocal(estanciaId.value)
+      : await estanciasApi.obtener(estanciaId.value)
   } catch (error) {
     errorMensaje.value = error instanceof ApiError ? error.message : 'Ocurrió un error inesperado.'
   }
@@ -227,7 +232,7 @@ async function guardarTodo() {
 
   guardando.value = true
   try {
-    const creada = await captacionesApi.crear({
+    const payload = {
       estanciaId: estanciaId.value,
       nombre: cabecera.nombre,
       observaciones: cabecera.observaciones || null,
@@ -237,7 +242,10 @@ async function guardarTodo() {
       longitud: cabecera.longitud,
       fechaCreacionLocal: new Date().toISOString(),
       detalles: grupos.value.map(({ tempId, ...resto }) => resto),
-    })
+    }
+    const creada = invitado.activo
+      ? await invitadoApi.crearCaptacionLocal(payload)
+      : await captacionesApi.crear(payload)
     borrarBorrador()
     guardadoExitoso.value = true
     mostrar('Captación registrada correctamente.')
@@ -273,10 +281,10 @@ function cancelar() {
           Datos Generales
         </h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-gutter-mobile md:gap-y-6">
-          <FormField v-model="cabecera.nombre" label="Nombre de la Captación" required placeholder="Ej. Lote Norte 2026" />
-          <FormField v-model="cabecera.potrero" label="Potrero Asignado" placeholder="Ej. Potrero 1 - Alfalfa" />
-          <FormField v-model="cabecera.fecha" label="Fecha de Captación" type="date" required />
-          <FormField v-model="cabecera.observaciones" label="Observaciones Generales" type="textarea" placeholder="Notas sobre el estado general del lote..." />
+          <FormField v-model="cabecera.nombre" label="Nombre de la captación" required placeholder="Ej. Lote Norte 2026" />
+          <FormField v-model="cabecera.potrero" label="Potrero asignado" placeholder="Ej. Potrero 1 - Alfalfa" />
+          <FormField v-model="cabecera.fecha" label="Fecha de captación" type="date" required />
+          <FormField v-model="cabecera.observaciones" label="Observaciones generales" type="textarea" placeholder="Notas sobre el estado general del lote..." />
         </div>
         <GpsCapture :latitud="cabecera.latitud" :longitud="cabecera.longitud" @update:coordenadas="onCoordenadas" />
       </section>
@@ -291,11 +299,11 @@ function cancelar() {
 
           <IconOptionGroup v-model="detalle.categoria" label="Categoría" :options="categoriaOptions" />
 
-          <FormField v-model="detalle.cantidadCabezas" type="number" label="Cantidad de Cabezas" placeholder="0" required />
+          <FormField v-model="detalle.cantidadCabezas" type="number" label="Cantidad de cabezas" placeholder="0" required />
 
           <IconOptionGroup
             v-model="detalle.sistemaAlimentacion"
-            label="Sistema de Alimentación"
+            label="Sistema de alimentación"
             :options="alimentacionOptions"
             columns="grid-cols-1 sm:grid-cols-3"
           />
@@ -312,10 +320,10 @@ function cancelar() {
           <div v-if="mostrarDetallesOpcionales" class="flex flex-col gap-gutter-mobile">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter-mobile">
               <FormField v-model="detalle.raza" label="Raza" placeholder="Ej. Brangus" />
-              <FormField v-model="detalle.pesoPromedioEstimadoKg" type="number" step="0.1" suffix="kg" label="Peso Promedio Estimado" placeholder="0.0" />
-              <FormField v-model="detalle.fechaEstimadaFaena" type="date" label="Fecha Estimada de Faena" />
+              <FormField v-model="detalle.pesoPromedioEstimadoKg" type="number" step="0.1" suffix="kg" label="Peso promedio estimado" placeholder="0.0" />
+              <FormField v-model="detalle.fechaEstimadaFaena" type="date" label="Fecha estimada de faena" />
             </div>
-            <FormField v-model="detalle.notasZootecnicas" type="textarea" label="Notas Zootécnicas" placeholder="Condición corporal, marcas específicas..." />
+            <FormField v-model="detalle.notasZootecnicas" type="textarea" label="Notas zootécnicas" placeholder="Condición corporal, marcas específicas..." />
           </div>
 
           <AlertBanner v-if="errorDetalle" variant="error">{{ errorDetalle }}</AlertBanner>
@@ -368,10 +376,10 @@ function cancelar() {
               <span class="font-body-lg text-on-surface-variant">Total Cabezas:</span>
               <span class="font-headline-lg text-headline-lg text-primary font-bold">{{ totalCabezas }}</span>
             </div>
-            <BaseButton type="button" icon="save" :loading="guardando" @click="guardarTodo">
+            <BaseButton type="button" :loading="guardando" @click="guardarTodo">
               Confirmar y Guardar Todo
             </BaseButton>
-            <BaseButton type="button" variant="text" @click="cancelar">Cancelar</BaseButton>
+            <BaseButton type="button" variant="secondary" @click="cancelar">Cancelar</BaseButton>
           </div>
         </section>
       </div>

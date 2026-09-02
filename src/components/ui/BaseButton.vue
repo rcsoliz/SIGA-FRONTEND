@@ -13,6 +13,14 @@ withDefaults(
     loading?: boolean
     disabled?: boolean
     block?: boolean
+    /** 'sm' para acciones de menor prioridad (crear-desde-encabezado en
+     * listados, "Acceder como invitado") — 44px de alto (mínimo de
+     * accesibilidad WCAG 2.5.5 / tap target de iOS; por debajo de los
+     * 48px que usa el resto de la app para acciones repetidas de campo
+     * como Guardar), texto e ícono más chicos, para no competir
+     * visualmente con la acción primaria de la pantalla. No usar 'sm' en
+     * botones de guardar/confirmar. */
+    size?: 'md' | 'sm'
   }>(),
   {
     type: 'button',
@@ -22,6 +30,7 @@ withDefaults(
     loading: false,
     disabled: false,
     block: true,
+    size: 'md',
   },
 )
 
@@ -44,12 +53,19 @@ const variantClasses = {
   <button
     :type="type"
     :disabled="disabled || loading"
-    class="h-touch-target-min font-button text-button flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
-    :class="[variantClasses[variant], pill ? 'rounded-full' : 'rounded-lg', block ? 'w-full' : 'px-6']"
+    class="flex items-center justify-center transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+    :class="[
+      variantClasses[variant],
+      pill ? 'rounded-full' : 'rounded-lg',
+      size === 'sm' ? 'h-11' : 'h-touch-target-min',
+      block ? 'w-full' : '',
+      size === 'sm' ? 'px-4' : 'px-6',
+      size === 'sm' ? 'font-button-sm text-button-sm gap-1.5' : 'font-button text-button gap-2',
+    ]"
     @click="$emit('click', $event)"
   >
     <span v-if="loading" class="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
-    <AppIcon v-else-if="icon" :name="icon" :size="20" />
+    <AppIcon v-else-if="icon" :name="icon" :size="size === 'sm' ? 16 : 20" />
     <slot />
   </button>
 </template>

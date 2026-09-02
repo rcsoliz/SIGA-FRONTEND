@@ -101,17 +101,17 @@ function cancelar() {
         class="flex flex-col gap-gutter-mobile md:gap-stack-lg md:bg-surface-container-lowest md:rounded-xl md:shadow-sm md:border md:border-outline-variant md:p-6"
         @submit.prevent="guardar"
       >
-        <FormField v-model="form.nombre" label="Nombre de la Captación" required />
-        <FormField v-model="form.potrero" label="Potrero Asignado" />
+        <FormField v-model="form.nombre" label="Nombre de la captación" required />
+        <FormField v-model="form.potrero" label="Potrero asignado" />
         <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter-mobile md:gap-6">
           <FormField v-model="form.estado" type="select" label="Estado" required :options="estadoOptions" />
-          <FormField v-model="form.estadoSanitario" type="select" label="Estado Sanitario" required :options="estadoSanitarioOptions" />
+          <FormField v-model="form.estadoSanitario" type="select" label="Estado sanitario" required :options="estadoSanitarioOptions" />
         </div>
-        <FormField v-model="form.observaciones" type="textarea" label="Observaciones Generales" />
+        <FormField v-model="form.observaciones" type="textarea" label="Observaciones generales" />
 
         <div class="flex flex-col-reverse md:flex-row md:justify-end gap-stack-sm md:gap-4 md:pt-4 md:border-t md:border-outline-variant">
           <BaseButton variant="secondary" type="button" class="md:w-auto" @click="cancelar">Cancelar</BaseButton>
-          <BaseButton type="submit" icon="save" :loading="guardando" class="md:w-auto">Guardar Cambios</BaseButton>
+          <BaseButton type="submit" :loading="guardando" class="md:w-auto">Guardar Cambios</BaseButton>
         </div>
       </form>
     </div>

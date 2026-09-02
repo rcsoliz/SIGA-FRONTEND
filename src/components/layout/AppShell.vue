@@ -13,6 +13,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useInvitadoStore } from '@/stores/invitado'
+import { sincronizarCola } from '@/services/sincronizacion'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import AppIcon, { type NombreIcono } from '@/components/ui/AppIcon.vue'
 import type { RolUsuario } from '@/types/enums'
@@ -23,6 +25,9 @@ interface NavItem {
   routeName: string
   roles: RolUsuario[]
   principal?: boolean
+  /** Requiere datos reales del servidor — se oculta en modo invitado, que no
+   * tiene forma de traerlos sin conexión. */
+  soloConexion?: boolean
 }
 
 // Ícono canónico por concepto (mejora #8 de docs/mejoras-frontend.md) — si un
@@ -36,8 +41,8 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', icon: 'monitoring', routeName: 'dashboard', roles: ['Administrador'], principal: true },
   { label: 'Estancias', icon: 'home_work', routeName: 'estancias', roles: ['Captador', 'Administrador'], principal: true },
-  { label: 'Mapa', icon: 'map', routeName: 'mapa-operaciones', roles: ['Captador', 'Administrador'], principal: true },
-  { label: 'Mi Productividad', icon: 'insights', routeName: 'mi-productividad', roles: ['Captador'], principal: true },
+  { label: 'Mapa', icon: 'map', routeName: 'mapa-operaciones', roles: ['Captador', 'Administrador'], principal: true, soloConexion: true },
+  { label: 'Mi Productividad', icon: 'insights', routeName: 'mi-productividad', roles: ['Captador'], principal: true, soloConexion: true },
   { label: 'Registros', icon: 'assignment', routeName: 'maestro-registros', roles: ['Administrador'] },
   { label: 'Ranking', icon: 'leaderboard', routeName: 'ranking-productividad', roles: ['Administrador'] },
   { label: 'Usuarios', icon: 'group', routeName: 'usuarios', roles: ['Administrador'] },
@@ -45,10 +50,20 @@ const NAV_ITEMS: NavItem[] = [
 ]
 
 const auth = useAuthStore()
+const invitado = useInvitadoStore()
 const route = useRoute()
 const router = useRouter()
 
-const navItems = computed(() => NAV_ITEMS.filter((item) => !auth.rol || item.roles.includes(auth.rol)))
+// El invitado nunca tiene auth.rol (no hay sesión real) — sin esto, un
+// filtro basado solo en `!auth.rol` dejaría pasar TODO el menú (Dashboard,
+// Usuarios, Auditoría) para un Captador sin conexión.
+const rolEfectivo = computed<RolUsuario | null>(() => (invitado.activo ? 'Captador' : auth.rol))
+const navItems = computed(() =>
+  NAV_ITEMS.filter(
+    (item) =>
+      (!rolEfectivo.value || item.roles.includes(rolEfectivo.value)) && !(invitado.activo && item.soloConexion),
+  ),
+)
 const itemsPrincipales = computed(() => navItems.value.filter((i) => i.principal))
 const itemsSecundarios = computed(() => navItems.value.filter((i) => !i.principal))
 const tituloSeccion = computed(() => navItems.value.find((i) => i.routeName === route.name)?.label ?? 'SIGA')
@@ -58,7 +73,27 @@ const drawerAbierto = ref(false)
 // --- Barra superior de escritorio (referencia: mockup "Maestro de Registros
 // - Optimizado" en Stitch) ---
 const notificacionesAbiertas = ref(false)
-const inicialUsuario = computed(() => (auth.nombre?.trim().charAt(0) ?? '?').toUpperCase())
+const nombreMostrado = computed(() => (invitado.activo ? 'Invitado' : auth.nombre))
+const rolMostrado = computed(() => (invitado.activo ? 'Modo local' : auth.rol))
+const inicialUsuario = computed(() => (invitado.activo ? 'I' : (auth.nombre?.trim().charAt(0) ?? '?').toUpperCase()))
+
+// --- Sincronización de la cola de invitado: mismo pill sirve para "entrar a
+// Login a sincronizar" (invitado.activo) y para "reintentar ahora" cuando ya
+// hay sesión real y quedó algo pendiente de una sincronización parcial. ---
+const sincronizando = ref(false)
+async function clicPillSync() {
+  if (invitado.activo) {
+    await router.push({ name: 'login' })
+    return
+  }
+  if (sincronizando.value) return
+  sincronizando.value = true
+  try {
+    await sincronizarCola()
+  } finally {
+    sincronizando.value = false
+  }
+}
 
 // "Sincronizar" recarga la página para traer datos frescos de la API — no
 // hay un endpoint de "sync global"; una recarga real es honesta (no simula
@@ -86,6 +121,19 @@ onUnmounted(() => {
 })
 
 async function salir() {
+  if (invitado.activo) {
+    if (
+      invitado.tienePendientes &&
+      !window.confirm(
+        `Tiene ${invitado.pendientes} registro(s) sin sincronizar en este dispositivo. Se conservarán localmente, pero deberá iniciar sesión para sincronizarlos. ¿Desea salir del modo invitado de todas formas?`,
+      )
+    ) {
+      return
+    }
+    invitado.salir()
+    await router.push({ name: 'login' })
+    return
+  }
   auth.cerrarSesion()
   await router.push({ name: 'login' })
 }
@@ -133,8 +181,8 @@ async function irA(routeName: string) {
       <div class="pt-4 border-t border-outline-variant">
         <div class="px-4 py-2 flex items-center justify-between">
           <div class="min-w-0">
-            <p class="font-body-md text-body-md text-on-surface font-semibold truncate">{{ auth.nombre }}</p>
-            <p class="font-label-md text-label-md text-on-surface-variant">{{ auth.rol }}</p>
+            <p class="font-body-md text-body-md text-on-surface font-semibold truncate">{{ nombreMostrado }}</p>
+            <p class="font-label-md text-label-md text-on-surface-variant">{{ rolMostrado }}</p>
           </div>
           <ThemeToggle />
         </div>
@@ -158,6 +206,21 @@ async function irA(routeName: string) {
         <span class="font-headline-md text-headline-md">SIGA</span>
       </div>
       <div class="flex items-center gap-1">
+        <button
+          v-if="invitado.activo || (auth.estaAutenticado && invitado.tienePendientes)"
+          type="button"
+          title="Sincronizar registros pendientes"
+          aria-label="Sincronizar registros pendientes"
+          class="relative h-10 w-10 flex items-center justify-center text-on-surface-variant hover:bg-surface-variant rounded-full transition-colors"
+          @click="clicPillSync"
+        >
+          <AppIcon name="sync" :size="20" />
+          <span
+            class="absolute top-0 right-0 min-w-[16px] h-4 px-1 rounded-full bg-error text-on-error font-label-md text-label-md leading-4 text-center"
+          >
+            {{ invitado.pendientes }}
+          </span>
+        </button>
         <ThemeToggle />
         <button
           title="Cerrar sesión"
@@ -188,6 +251,18 @@ async function irA(routeName: string) {
             <span class="w-2.5 h-2.5 rounded-full" :class="enLinea ? 'bg-primary-fixed animate-pulse' : 'bg-error'" />
             <span class="font-label-md text-label-md">{{ enLinea ? 'En línea' : 'Sin conexión' }}</span>
           </div>
+          <button
+            v-if="invitado.activo || (auth.estaAutenticado && invitado.tienePendientes)"
+            type="button"
+            class="flex items-center gap-2 px-4 py-1.5 rounded-full bg-secondary-container text-on-secondary-container hover:opacity-90 transition-opacity"
+            :title="invitado.activo ? 'Inicie sesión para sincronizar lo registrado en este dispositivo' : 'Sincronizar registros pendientes'"
+            @click="clicPillSync"
+          >
+            <AppIcon name="sync" :size="16" :class="sincronizando ? 'animate-spin' : ''" />
+            <span class="font-label-md text-label-md">
+              {{ invitado.activo ? `Invitado · ${invitado.pendientes} pend.` : `${invitado.pendientes} sin sincronizar` }}
+            </span>
+          </button>
           <button
             type="button"
             title="Actualizar datos"
@@ -226,8 +301,8 @@ async function irA(routeName: string) {
               {{ inicialUsuario }}
             </div>
             <div class="hidden lg:block min-w-0">
-              <p class="font-body-md text-body-md text-on-surface font-semibold truncate max-w-[140px]">{{ auth.nombre }}</p>
-              <p class="font-label-md text-label-md text-on-surface-variant">{{ auth.rol }}</p>
+              <p class="font-body-md text-body-md text-on-surface font-semibold truncate max-w-[140px]">{{ nombreMostrado }}</p>
+              <p class="font-label-md text-label-md text-on-surface-variant">{{ rolMostrado }}</p>
             </div>
           </div>
         </div>

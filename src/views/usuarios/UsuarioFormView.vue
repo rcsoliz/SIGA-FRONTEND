@@ -69,15 +69,15 @@ function cancelar() {
         class="flex flex-col gap-gutter-mobile md:gap-stack-lg md:bg-surface-container-lowest md:rounded-xl md:shadow-sm md:border md:border-outline-variant md:p-6"
         @submit.prevent="guardar"
       >
-        <FormField v-model="form.nombre" label="Nombre Completo" required placeholder="Ej. María Quispe" />
-        <FormField v-model="form.email" label="Correo Electrónico" type="text" required placeholder="usuario@siga.com" />
+        <FormField v-model="form.nombre" label="Nombre completo" required placeholder="Ej. María Quispe" />
+        <FormField v-model="form.email" label="Correo electrónico" type="text" required placeholder="usuario@siga.com" />
         <FormField v-model="form.password" label="Contraseña" type="password" required placeholder="Mínimo 8 caracteres" />
         <FormField v-model="form.cargo" label="Cargo" placeholder="Ej. Captador de Campo" />
         <FormField v-model="form.rol" type="select" label="Rol" required :options="rolOptions" />
 
         <div class="flex flex-col-reverse md:flex-row md:justify-end gap-stack-sm md:gap-4 md:pt-4 md:border-t md:border-outline-variant">
           <BaseButton variant="secondary" type="button" class="md:w-auto" @click="cancelar">Cancelar</BaseButton>
-          <BaseButton type="submit" icon="save" :loading="guardando" class="md:w-auto">Crear Usuario</BaseButton>
+          <BaseButton type="submit" :loading="guardando" class="md:w-auto">Crear Usuario</BaseButton>
         </div>
       </form>
     </div>
