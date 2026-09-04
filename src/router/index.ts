@@ -121,6 +121,12 @@ const router = createRouter({
       meta: { requiereAuth: true, roles: ['Administrador'] as RolUsuario[] },
     },
     {
+      path: '/composicion-hato',
+      name: 'composicion-hato',
+      component: () => import('@/views/planificacion/ComposicionHatoView.vue'),
+      meta: { requiereAuth: true, roles: ['Administrador'] as RolUsuario[] },
+    },
+    {
       path: '/ranking-productividad',
       name: 'ranking-productividad',
       component: () => import('@/views/productividad/RankingProductividadView.vue'),

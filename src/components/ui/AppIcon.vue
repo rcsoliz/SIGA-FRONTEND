@@ -47,6 +47,7 @@ import {
   Moon,
   MoreHorizontal,
   Pencil,
+  PieChart,
   Plus,
   RefreshCw,
   Save,
@@ -123,6 +124,7 @@ const ICONOS = {
   more_horiz: MoreHorizontal,
   my_location: LocateFixed,
   notifications: Bell,
+  pie_chart: PieChart,
   // Cabezas de ganado (métrica): mismo glifo que la marca — ambos significan
   // "ganado", nunca un ícono de mascota.
   pets: Beef,

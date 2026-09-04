@@ -46,6 +46,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Mi Productividad', icon: 'insights', routeName: 'mi-productividad', roles: ['Captador'], principal: true, soloConexion: true },
   { label: 'Registros', icon: 'assignment', routeName: 'maestro-registros', roles: ['Administrador'] },
   { label: 'Planificación de Faena', icon: 'calendar_month', routeName: 'planificacion-faena', roles: ['Administrador'] },
+  { label: 'Composición del Hato', icon: 'pie_chart', routeName: 'composicion-hato', roles: ['Administrador'] },
   { label: 'Ranking', icon: 'leaderboard', routeName: 'ranking-productividad', roles: ['Administrador'] },
   { label: 'Usuarios', icon: 'group', routeName: 'usuarios', roles: ['Administrador'] },
   { label: 'Auditoría', icon: 'history', routeName: 'trazabilidad-auditoria', roles: ['Administrador'] },
