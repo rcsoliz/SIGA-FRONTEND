@@ -1,14 +1,14 @@
 <script setup lang="ts">
 // "Cuándo estarán listas las reses para salir al mercado" (pedido directo del
-// Administrador): no hay endpoint nuevo de backend para esto — fechaEstimadaFaena
-// ya viaja en CaptacionGanadoDto.detalles, así que se arma la vista trayendo
-// todas las Estancias y, por cada una, sus Captaciones (N+1, pero el dataset es
-// chico y no hay forma de listar captaciones sin filtrar por estancia — ver
-// GET /api/captaciones?estanciaId= en la especificación), y aplanando los
-// detalles con fecha estimada. "Días restantes" se calcula acá mismo con una
-// resta de fechas — el backend ya lo manda como diasRestantesFaena pero
-// recalcularlo es trivial y evita depender de un campo que cambia de valor
-// cada día sin que el registro se haya tocado.
+// Administrador): fechaEstimadaFaena ya viaja en CaptacionGanadoDto.detalles,
+// así que se arma la vista con dos llamadas en paralelo — todas las Estancias
+// (para el nombre) y todas las Captaciones vía captacionesApi.listar(), que
+// devuelve las de TODAS las Estancias en una sola llamada (estanciaId es
+// opcional en el backend) — y aplanando los detalles con fecha estimada.
+// "Días restantes" se calcula acá mismo con una resta de fechas — el backend
+// ya lo manda como diasRestantesFaena pero recalcularlo es trivial y evita
+// depender de un campo que cambia de valor cada día sin que el registro se
+// haya tocado.
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import autoTable from 'jspdf-autotable'
@@ -57,32 +57,30 @@ async function cargar() {
   cargando.value = true
   errorMensaje.value = null
   try {
-    const estancias = await estanciasApi.listar()
-    const listasPorEstancia = await Promise.all(estancias.map((e) => captacionesApi.listarPorEstancia(e.id)))
+    const [estancias, captaciones] = await Promise.all([estanciasApi.listar(), captacionesApi.listar()])
+    const nombreEstanciaPorId = new Map(estancias.map((e) => [e.id, e.nombre]))
 
     const filas: LoteProximo[] = []
     let sinFecha = 0
-    estancias.forEach((estancia, indice) => {
-      for (const captacion of listasPorEstancia[indice]) {
-        for (const detalle of captacion.detalles) {
-          if (!detalle.fechaEstimadaFaena) {
-            sinFecha++
-            continue
-          }
-          filas.push({
-            estanciaId: estancia.id,
-            estanciaNombre: estancia.nombre,
-            captacionId: captacion.id,
-            captacionNombre: captacion.nombre,
-            categoria: detalle.categoria,
-            raza: detalle.raza,
-            cantidadCabezas: detalle.cantidadCabezas,
-            fechaEstimadaFaena: detalle.fechaEstimadaFaena,
-            diasRestantes: diasRestantesDe(detalle.fechaEstimadaFaena),
-          })
+    for (const captacion of captaciones) {
+      for (const detalle of captacion.detalles) {
+        if (!detalle.fechaEstimadaFaena) {
+          sinFecha++
+          continue
         }
+        filas.push({
+          estanciaId: captacion.estanciaId,
+          estanciaNombre: nombreEstanciaPorId.get(captacion.estanciaId) ?? '—',
+          captacionId: captacion.id,
+          captacionNombre: captacion.nombre,
+          categoria: detalle.categoria,
+          raza: detalle.raza,
+          cantidadCabezas: detalle.cantidadCabezas,
+          fechaEstimadaFaena: detalle.fechaEstimadaFaena,
+          diasRestantes: diasRestantesDe(detalle.fechaEstimadaFaena),
+        })
       }
-    })
+    }
     filas.sort((a, b) => a.diasRestantes - b.diasRestantes)
     lotes.value = filas
     lotesSinFecha.value = sinFecha

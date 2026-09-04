@@ -12,6 +12,15 @@ export async function listarPorEstancia(estanciaId: string): Promise<CaptacionGa
   return data
 }
 
+/** estanciaId es opcional en el backend: sin filtro devuelve las Captaciones
+ * de todas las Estancias en una sola llamada — usado por los informes que
+ * cruzan Estancias (ej. Planificación de Faena), evita el N+1 de pedir
+ * estancia por estancia. */
+export async function listar(): Promise<CaptacionGanadoDto[]> {
+  const { data } = await apiClient.get<CaptacionGanadoDto[]>('/captaciones')
+  return data
+}
+
 export async function obtener(id: string): Promise<CaptacionGanadoDto> {
   const { data } = await apiClient.get<CaptacionGanadoDto>(`/captaciones/${id}`)
   return data
