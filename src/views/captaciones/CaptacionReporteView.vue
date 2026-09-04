@@ -13,13 +13,20 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import EstadoCaptacionBadge from '@/components/ui/EstadoCaptacionBadge.vue'
 import EstadoSanitarioBadge from '@/components/ui/EstadoSanitarioBadge.vue'
 import AppIcon, { type NombreIcono } from '@/components/ui/AppIcon.vue'
+import autoTable from 'jspdf-autotable'
 import { useAuthStore } from '@/stores/auth'
 import { useInvitadoStore } from '@/stores/invitado'
 import { useToast } from '@/composables/useToast'
 import { ApiError } from '@/api/client'
 import * as captacionesApi from '@/api/captaciones'
 import * as invitadoApi from '@/services/invitadoApi'
-import { CategoriaGanadoLabels, TipoManejoAlimentarioLabels } from '@/types/enums'
+import { crearDocumentoPdf, nombreArchivoPdf, ALTO_ENCABEZADO } from '@/utils/pdfReporte'
+import {
+  CategoriaGanadoLabels,
+  EstadoCaptacionLabels,
+  EstadoSanitarioLabels,
+  TipoManejoAlimentarioLabels,
+} from '@/types/enums'
 import type { CaptacionGanadoDto } from '@/types/dto'
 
 const route = useRoute()
@@ -92,6 +99,65 @@ async function confirmarEliminacion() {
   }
 }
 
+function exportarPdf() {
+  const c = captacion.value
+  if (!c) return
+
+  const { doc, dibujarEncabezado, finalizarConPiePagina, guardar, opcionesTablaBase } = crearDocumentoPdf(
+    c.nombre,
+    `${formatearFecha(c.fecha)} · ${c.potrero ?? 'Sin potrero asignado'}`,
+  )
+  dibujarEncabezado()
+
+  let y = ALTO_ENCABEZADO + 34
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(11)
+  doc.setTextColor(25, 28, 29)
+  doc.text('Resumen', 40, y)
+  y += 18
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(64, 73, 67)
+  doc.text(`Estado: ${EstadoCaptacionLabels[c.estado]}   ·   Estado Sanitario: ${EstadoSanitarioLabels[c.estadoSanitario]}`, 40, y)
+  y += 16
+  doc.text(
+    `Cabezas Totales: ${c.totalCabezas}   ·   Peso Estimado Total: ${c.pesoEstimadoTotal.toLocaleString('es-BO')} kg   ·   Días en Potrero: ${c.diasEnPotrero ?? '—'}`,
+    40,
+    y,
+  )
+  y += 16
+  if (c.observaciones) {
+    doc.text(`Observaciones: ${c.observaciones}`, 40, y)
+    y += 16
+  }
+  y += 10
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(11)
+  doc.setTextColor(25, 28, 29)
+  doc.text('Detalle por Categoría', 40, y)
+  y += 10
+
+  autoTable(doc, {
+    ...opcionesTablaBase,
+    startY: y,
+    head: [['Categoría', 'Raza', 'Cabezas', 'Peso Prom. (kg)', 'Alimentación', 'Est. Faena', 'Peso Lote (kg)']],
+    body: c.detalles.map((d) => [
+      CategoriaGanadoLabels[d.categoria],
+      d.raza ?? '—',
+      String(d.cantidadCabezas),
+      d.pesoPromedioEstimadoKg !== null ? String(d.pesoPromedioEstimadoKg) : '—',
+      TipoManejoAlimentarioLabels[d.sistemaAlimentacion],
+      formatearFecha(d.fechaEstimadaFaena),
+      d.pesoLoteCalculado.toLocaleString('es-BO'),
+    ]),
+  })
+
+  finalizarConPiePagina()
+  guardar(nombreArchivoPdf(`captacion-${c.nombre}`))
+}
+
 const metricas = computed(() => {
   if (!captacion.value) return null
   const c = captacion.value
@@ -134,6 +200,9 @@ const metricas = computed(() => {
             </div>
           </div>
           <div class="flex items-center gap-2 w-full md:w-auto">
+            <BaseButton variant="secondary" size="sm" icon="download" pill :block="false" @click="exportarPdf">
+              Exportar PDF
+            </BaseButton>
             <RouterLink
               v-if="!invitado.activo"
               :to="{ name: 'captaciones-editar', params: { id: captacion.id } }"

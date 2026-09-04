@@ -40,6 +40,22 @@ const alimentacionOptions: { value: TipoManejoAlimentario; label: string; icon: 
   { value: 'Confinamiento', label: TipoManejoAlimentarioLabels.Confinamiento, icon: 'warehouse' },
 ]
 
+// Raza NO es un enum del backend (a diferencia de CategoriaGanado/
+// TipoManejoAlimentario arriba) — el campo sigue siendo varchar libre en la
+// base de datos. Esta lista es una restricción solo de este formulario, para
+// que los datos que se capturen de acá en adelante queden consistentes y se
+// puedan agrupar en informes ("Brangus" siempre igual, nunca variantes de
+// mayúsculas/typos). Orden alfabético a pedido.
+const razaOptions: { value: string; label: string }[] = [
+  { value: 'Angus', label: 'Angus' },
+  { value: 'Braford', label: 'Braford' },
+  { value: 'Brahman', label: 'Brahman' },
+  { value: 'Brangus', label: 'Brangus' },
+  { value: 'Criollo', label: 'Criollo' },
+  { value: 'Mocho', label: 'Mocho' },
+  { value: 'Nelore', label: 'Nelore' },
+]
+
 // --- Cabecera ---
 const cabecera = reactive({
   nombre: '',
@@ -119,7 +135,7 @@ function restaurarBorrador(): boolean {
     Object.assign(detalle, borrador.detalle)
     // Si el borrador traía algún detalle opcional cargado, hay que abrir el
     // panel — si no, quedaría restaurado pero invisible detrás del toggle.
-    if (detalle.raza || detalle.pesoPromedioEstimadoKg || detalle.fechaEstimadaFaena || detalle.notasZootecnicas) {
+    if (detalle.pesoPromedioEstimadoKg || detalle.notasZootecnicas) {
       mostrarDetallesOpcionales.value = true
     }
     return hayCambiosSinGuardar()
@@ -299,7 +315,10 @@ function cancelar() {
 
           <IconOptionGroup v-model="detalle.categoria" label="Categoría" :options="categoriaOptions" />
 
-          <FormField v-model="detalle.cantidadCabezas" type="number" label="Cantidad de cabezas" placeholder="0" required />
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter-mobile">
+            <FormField v-model="detalle.raza" type="select" label="Raza" :options="razaOptions" />
+            <FormField v-model="detalle.cantidadCabezas" type="number" label="Cantidad de cabezas" placeholder="0" required />
+          </div>
 
           <IconOptionGroup
             v-model="detalle.sistemaAlimentacion"
@@ -308,21 +327,23 @@ function cancelar() {
             columns="grid-cols-1 sm:grid-cols-3"
           />
 
+          <!-- Siempre visible (no detrás del toggle): es lo que alimenta la
+          vista "Planificación de Faena" del Administrador — si queda
+          escondida, el Captador tiende a saltársela y ese lote nunca
+          aparece ahí. -->
+          <FormField v-model="detalle.fechaEstimadaFaena" type="date" label="Fecha estimada de faena" />
+
           <button
             type="button"
             class="inline-flex items-center gap-1 text-primary font-label-md text-label-md hover:underline w-fit"
             @click="mostrarDetallesOpcionales = !mostrarDetallesOpcionales"
           >
             <AppIcon :name="mostrarDetallesOpcionales ? 'expand_less' : 'expand_more'" :size="16" />
-            {{ mostrarDetallesOpcionales ? 'Ocultar detalles opcionales' : 'Agregar detalles opcionales (raza, peso, fecha de faena, notas)' }}
+            {{ mostrarDetallesOpcionales ? 'Ocultar detalles opcionales' : 'Agregar detalles opcionales (peso, notas)' }}
           </button>
 
           <div v-if="mostrarDetallesOpcionales" class="flex flex-col gap-gutter-mobile">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter-mobile">
-              <FormField v-model="detalle.raza" label="Raza" placeholder="Ej. Brangus" />
-              <FormField v-model="detalle.pesoPromedioEstimadoKg" type="number" step="0.1" suffix="kg" label="Peso promedio estimado" placeholder="0.0" />
-              <FormField v-model="detalle.fechaEstimadaFaena" type="date" label="Fecha estimada de faena" />
-            </div>
+            <FormField v-model="detalle.pesoPromedioEstimadoKg" type="number" step="0.1" suffix="kg" label="Peso promedio estimado" placeholder="0.0" />
             <FormField v-model="detalle.notasZootecnicas" type="textarea" label="Notas zootécnicas" placeholder="Condición corporal, marcas específicas..." />
           </div>
 

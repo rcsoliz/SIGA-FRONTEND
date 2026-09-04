@@ -4,8 +4,10 @@
 // reordena ni se recalcula nada en el frontend (sección 5.4 de la spec).
 import { onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import autoTable from 'jspdf-autotable'
 import AppShell from '@/components/layout/AppShell.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
 import SyncBadge from '@/components/ui/SyncBadge.vue'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import SkeletonCard from '@/components/ui/SkeletonCard.vue'
@@ -14,6 +16,8 @@ import AppIcon, { type NombreIcono } from '@/components/ui/AppIcon.vue'
 import { ApiError } from '@/api/client'
 import * as registrosApi from '@/api/registros'
 import { usePaginacion } from '@/composables/usePaginacion'
+import { crearDocumentoPdf, nombreArchivoPdf, ALTO_ENCABEZADO } from '@/utils/pdfReporte'
+import { EstadoSyncLabels } from '@/types/enums'
 import type { RegistroCampoDto } from '@/types/dto'
 
 const TIPO_ICONOS: Record<RegistroCampoDto['tipo'], NombreIcono> = {
@@ -85,6 +89,39 @@ function limpiarFiltros() {
   cargar()
 }
 
+function exportarPdf() {
+  const partesFiltro: string[] = []
+  if (filtros.tipo) partesFiltro.push(TIPO_OPCIONES.find((o) => o.value === filtros.tipo)?.label ?? filtros.tipo)
+  if (filtros.desde) partesFiltro.push(`desde ${filtros.desde}`)
+  if (filtros.hasta) partesFiltro.push(`hasta ${filtros.hasta}`)
+  if (filtros.texto) partesFiltro.push(`texto "${filtros.texto}"`)
+  const subtitulo = `${registros.value.length} registro${registros.value.length === 1 ? '' : 's'}${partesFiltro.length ? ` · ${partesFiltro.join(' · ')}` : ''}`
+
+  const { doc, dibujarEncabezado, finalizarConPiePagina, guardar, opcionesTablaBase } = crearDocumentoPdf(
+    'Maestro de Registros',
+    subtitulo,
+  )
+  dibujarEncabezado()
+
+  autoTable(doc, {
+    ...opcionesTablaBase,
+    startY: ALTO_ENCABEZADO + 20,
+    head: [['ID', 'Fecha y Hora', 'Tipo', 'Captación', 'Detalle / Métrica', 'Registrado por', 'Estado']],
+    body: registros.value.map((r) => [
+      `#${r.id.slice(0, 8)}`,
+      formatearFechaHora(r.fechaHora),
+      r.tipo === 'Alimentacion' ? 'Alimentación' : r.tipo,
+      r.captacionNombre,
+      r.detalleMetrica,
+      r.registradoPor,
+      EstadoSyncLabels[r.estadoSync],
+    ]),
+  })
+
+  finalizarConPiePagina()
+  guardar(nombreArchivoPdf('maestro-de-registros'))
+}
+
 onMounted(cargar)
 </script>
 
@@ -98,15 +135,28 @@ onMounted(cargar)
             Vista consolidada de las 4 bitácoras del sistema.
           </p>
         </div>
-        <div class="relative w-full md:w-80">
-          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-outline flex"><AppIcon name="search" :size="20" /></span>
-          <input
-            v-model="filtros.texto"
-            type="text"
-            placeholder="Buscar por ID, Captación o Detalles..."
-            class="w-full h-12 pl-10 pr-4 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface font-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow"
-            @input="onFiltroCambio"
-          />
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+          <BaseButton
+            v-if="!cargando && registros.length > 0"
+            variant="secondary"
+            size="sm"
+            icon="download"
+            :block="false"
+            class="w-full sm:w-auto"
+            @click="exportarPdf"
+          >
+            Exportar PDF
+          </BaseButton>
+          <div class="relative w-full md:w-80">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-outline flex"><AppIcon name="search" :size="20" /></span>
+            <input
+              v-model="filtros.texto"
+              type="text"
+              placeholder="Buscar por ID, Captación o Detalles..."
+              class="w-full h-12 pl-10 pr-4 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface font-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow"
+              @input="onFiltroCambio"
+            />
+          </div>
         </div>
       </div>
 

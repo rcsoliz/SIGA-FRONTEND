@@ -38,12 +38,14 @@ interface NavItem {
 //   Movimiento  -> local_shipping           Auditoría -> history
 //   Alimentación -> grass      Registros/Maestro (bitácoras consolidadas) -> assignment
 //   Cabezas de ganado (métrica) -> pets     Ubicación/dirección -> location_on
+//   Fecha/planificación (faena) -> calendar_month
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', icon: 'monitoring', routeName: 'dashboard', roles: ['Administrador'], principal: true },
   { label: 'Estancias', icon: 'home_work', routeName: 'estancias', roles: ['Captador', 'Administrador'], principal: true },
   { label: 'Mapa', icon: 'map', routeName: 'mapa-operaciones', roles: ['Captador', 'Administrador'], principal: true, soloConexion: true },
   { label: 'Mi Productividad', icon: 'insights', routeName: 'mi-productividad', roles: ['Captador'], principal: true, soloConexion: true },
   { label: 'Registros', icon: 'assignment', routeName: 'maestro-registros', roles: ['Administrador'] },
+  { label: 'Planificación de Faena', icon: 'calendar_month', routeName: 'planificacion-faena', roles: ['Administrador'] },
   { label: 'Ranking', icon: 'leaderboard', routeName: 'ranking-productividad', roles: ['Administrador'] },
   { label: 'Usuarios', icon: 'group', routeName: 'usuarios', roles: ['Administrador'] },
   { label: 'Auditoría', icon: 'history', routeName: 'trazabilidad-auditoria', roles: ['Administrador'] },
