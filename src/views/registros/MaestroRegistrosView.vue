@@ -2,6 +2,8 @@
 // Maestro de Registros (🔒 Administrador): vista de solo lectura sobre
 // GET /api/registros, ya filtrada y ordenada por el backend — no se
 // reordena ni se recalcula nada en el frontend (sección 5.4 de la spec).
+// Por eso <DataTable> se usa acá sin columnas `ordenable`: el punto de la
+// migración es compartir el layout de tabla/tarjeta/tablet, no sumar orden.
 import { onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import autoTable from 'jspdf-autotable'
@@ -13,12 +15,14 @@ import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import Pagination from '@/components/ui/Pagination.vue'
 import AppIcon, { type NombreIcono } from '@/components/ui/AppIcon.vue'
+import DataTable from '@/components/ui/DataTable.vue'
 import { ApiError } from '@/api/client'
 import * as registrosApi from '@/api/registros'
 import { usePaginacion } from '@/composables/usePaginacion'
 import { crearDocumentoPdf, nombreArchivoPdf, ALTO_ENCABEZADO } from '@/utils/pdfReporte'
 import { EstadoSyncLabels } from '@/types/enums'
 import type { RegistroCampoDto } from '@/types/dto'
+import type { ColumnaTabla } from '@/types/dataTable'
 
 const TIPO_ICONOS: Record<RegistroCampoDto['tipo'], NombreIcono> = {
   Pesaje: 'scale',
@@ -35,6 +39,16 @@ const TIPO_OPCIONES: { value: RegistroCampoDto['tipo'] | ''; label: string }[] =
   { value: 'Alimentacion', label: 'Alimentación' },
 ]
 
+const columnas: ColumnaTabla<RegistroCampoDto>[] = [
+  { clave: 'id', etiqueta: 'ID', ocultarEnTablet: true },
+  { clave: 'fechaHora', etiqueta: 'Fecha y Hora' },
+  { clave: 'tipo', etiqueta: 'Tipo' },
+  { clave: 'captacionNombre', etiqueta: 'Captación' },
+  { clave: 'detalleMetrica', etiqueta: 'Detalle / Métrica', ocultarEnTablet: true },
+  { clave: 'registradoPor', etiqueta: 'Registrado por', ocultarEnTablet: true },
+  { clave: 'estadoSync', etiqueta: 'Estado', alinear: 'centro' },
+]
+
 const filtros = reactive({
   texto: '',
   tipo: '' as RegistroCampoDto['tipo'] | '',
@@ -48,6 +62,10 @@ const errorMensaje = ref<string | null>(null)
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
 const { paginaActual, totalPaginas, itemsPagina, porPagina } = usePaginacion(registros, 8)
+
+function tipoLabel(tipo: RegistroCampoDto['tipo']): string {
+  return tipo === 'Alimentacion' ? 'Alimentación' : tipo
+}
 
 function formatearFechaHora(iso: string): string {
   return new Date(iso).toLocaleString('es-BO', {
@@ -110,7 +128,7 @@ function exportarPdf() {
     body: registros.value.map((r) => [
       `#${r.id.slice(0, 8)}`,
       formatearFechaHora(r.fechaHora),
-      r.tipo === 'Alimentacion' ? 'Alimentación' : r.tipo,
+      tipoLabel(r.tipo),
       r.captacionNombre,
       r.detalleMetrica,
       r.registradoPor,
@@ -209,74 +227,54 @@ onMounted(cargar)
         <p class="font-body-lg text-body-lg text-on-surface-variant">No se encontraron registros con estos filtros.</p>
       </div>
 
-      <!-- Desktop table -->
-      <div v-else class="hidden md:block bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-surface-container-low border-b border-outline-variant">
-                <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">ID</th>
-                <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Fecha y Hora</th>
-                <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Tipo</th>
-                <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Captación</th>
-                <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Detalles / Métrica</th>
-                <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Registrado por</th>
-                <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Estado</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-outline-variant">
-              <tr v-for="r in itemsPagina" :key="r.id" class="hover:bg-surface-container-low transition-colors">
-                <td class="p-4 font-body-md text-on-surface font-medium">#{{ r.id.slice(0, 8) }}</td>
-                <td class="p-4 font-body-md text-on-surface-variant whitespace-nowrap">{{ formatearFechaHora(r.fechaHora) }}</td>
-                <td class="p-4">
-                  <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container text-on-surface-variant border border-outline-variant">
-                    <AppIcon :name="TIPO_ICONOS[r.tipo]" :size="16" />
-                    <span class="font-label-md text-label-md">{{ r.tipo === 'Alimentacion' ? 'Alimentación' : r.tipo }}</span>
-                  </div>
-                </td>
-                <td class="p-4 font-body-md text-on-surface">
-                  <RouterLink :to="{ name: 'captaciones-reporte', params: { id: r.captacionGanadoId } }" class="hover:underline text-primary">
-                    {{ r.captacionNombre }}
-                  </RouterLink>
-                </td>
-                <td class="p-4 font-body-md text-on-surface">{{ r.detalleMetrica }}</td>
-                <td class="p-4 font-body-md text-on-surface-variant">{{ r.registradoPor }}</td>
-                <td class="p-4"><SyncBadge :estado="r.estadoSync" /></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable
+        v-else
+        :columnas="columnas"
+        :items="itemsPagina"
+        :clave-fila="(r: RegistroCampoDto) => r.id"
+        :titulo-movil="(r: RegistroCampoDto) => `#${r.id.slice(0, 8)}`"
+        :subtitulo-movil="(r: RegistroCampoDto) => formatearFechaHora(r.fechaHora)"
+      >
+        <template #celda-id="{ item }">
+          <span class="font-body-md text-on-surface font-medium">#{{ item.id.slice(0, 8) }}</span>
+        </template>
+        <template #celda-fechaHora="{ item }">
+          <span class="whitespace-nowrap">{{ formatearFechaHora(item.fechaHora) }}</span>
+        </template>
+        <template #celda-tipo="{ item }">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container text-on-surface-variant border border-outline-variant">
+            <AppIcon :name="TIPO_ICONOS[item.tipo]" :size="16" />
+            <span class="font-label-md text-label-md">{{ tipoLabel(item.tipo) }}</span>
+          </div>
+        </template>
+        <template #celda-captacionNombre="{ item }">
+          <RouterLink
+            :to="{ name: 'captaciones-reporte', params: { id: item.captacionGanadoId } }"
+            class="hover:underline text-primary block max-w-[22ch] truncate"
+            :title="item.captacionNombre"
+          >
+            {{ item.captacionNombre }}
+          </RouterLink>
+        </template>
+        <template #celda-estadoSync="{ item }"><SyncBadge :estado="item.estadoSync" /></template>
 
-      <!-- Mobile cards -->
-      <div v-if="!cargando && registros.length > 0" class="md:hidden flex flex-col gap-gutter-mobile">
-        <div
-          v-for="r in itemsPagina"
-          :key="r.id"
-          class="bg-surface-container-lowest rounded-xl p-stack-md shadow-sm border border-outline-variant flex flex-col gap-stack-sm"
-        >
-          <div class="flex justify-between items-start">
-            <div class="flex flex-col">
-              <span class="font-label-md text-label-md text-on-surface-variant">#{{ r.id.slice(0, 8) }}</span>
-              <span class="font-label-md text-label-md text-on-surface-variant mt-1">{{ formatearFechaHora(r.fechaHora) }}</span>
-            </div>
-            <div class="flex items-center gap-1 bg-surface-container px-2 py-1 rounded border border-outline-variant">
-              <AppIcon :name="TIPO_ICONOS[r.tipo]" :size="16" class="text-primary" />
-              <span class="font-label-md text-primary">{{ r.tipo === 'Alimentacion' ? 'Alimentación' : r.tipo }}</span>
-            </div>
+        <template #extra-movil="{ item }">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container text-on-surface-variant border border-outline-variant w-fit">
+            <AppIcon :name="TIPO_ICONOS[item.tipo]" :size="16" />
+            <span class="font-label-md text-label-md">{{ tipoLabel(item.tipo) }}</span>
           </div>
           <RouterLink
-            :to="{ name: 'captaciones-reporte', params: { id: r.captacionGanadoId } }"
+            :to="{ name: 'captaciones-reporte', params: { id: item.captacionGanadoId } }"
             class="flex items-center gap-2 text-primary font-body-md font-semibold hover:underline w-fit"
           >
             <AppIcon name="location_on" :size="18" />
-            {{ r.captacionNombre }}
+            {{ item.captacionNombre }}
           </RouterLink>
-          <p class="font-body-md text-on-surface">{{ r.detalleMetrica }}</p>
-          <p class="font-label-md text-label-md text-on-surface-variant">Registrado por: {{ r.registradoPor }}</p>
-          <SyncBadge :estado="r.estadoSync" />
-        </div>
-      </div>
+          <p class="font-body-md text-on-surface">{{ item.detalleMetrica }}</p>
+          <p class="font-label-md text-label-md text-on-surface-variant">Registrado por: {{ item.registradoPor }}</p>
+          <SyncBadge :estado="item.estadoSync" />
+        </template>
+      </DataTable>
 
       <Pagination
         v-if="!cargando && registros.length > 0"

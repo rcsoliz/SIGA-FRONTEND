@@ -10,14 +10,20 @@ import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import Pagination from '@/components/ui/Pagination.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import DataTable from '@/components/ui/DataTable.vue'
+import RowActionsMenu from '@/components/ui/RowActionsMenu.vue'
+import FilterChips from '@/components/ui/FilterChips.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useInvitadoStore } from '@/stores/invitado'
 import { useToast } from '@/composables/useToast'
 import { usePaginacion } from '@/composables/usePaginacion'
+import { useOrdenable } from '@/composables/useOrdenable'
 import { ApiError } from '@/api/client'
 import * as estanciasApi from '@/api/estancias'
 import * as invitadoApi from '@/services/invitadoApi'
 import type { EstanciaDto } from '@/types/dto'
+import type { EstadoSync } from '@/types/enums'
+import type { ColumnaTabla } from '@/types/dataTable'
 
 const auth = useAuthStore()
 const invitado = useInvitadoStore()
@@ -25,21 +31,46 @@ const { mostrar } = useToast()
 const puedeCrear = computed(() => auth.rol === 'Captador' || invitado.activo)
 // Eliminar: 🔒 Administrador (EstanciasController.cs — [Authorize(Roles = "Administrador")] en DELETE)
 const puedeEliminar = computed(() => auth.rol === 'Administrador')
+const puedeEditar = computed(() => !invitado.activo)
+const mostrarAcciones = computed(() => puedeEliminar.value || puedeEditar.value)
 
 const estancias = ref<EstanciaDto[]>([])
 const cargando = ref(true)
 const errorMensaje = ref<string | null>(null)
 const busqueda = ref('')
+const filtroEstado = ref<'' | EstadoSync>('')
+
+const OPCIONES_ESTADO: { valor: '' | EstadoSync; etiqueta: string }[] = [
+  { valor: '', etiqueta: 'Todos' },
+  { valor: 'Sincronizado', etiqueta: 'Sincronizado' },
+  { valor: 'Pendiente', etiqueta: 'Pendiente' },
+  { valor: 'Error', etiqueta: 'Error' },
+]
+
+const columnas: ColumnaTabla<EstanciaDto>[] = [
+  { clave: 'nombre', etiqueta: 'Nombre', ordenable: true },
+  { clave: 'propietario', etiqueta: 'Propietario', ordenable: true },
+  { clave: 'ubicacion', etiqueta: 'Ubicación' },
+  { clave: 'cantidadCaptaciones', etiqueta: 'Captaciones', alinear: 'derecha', ordenable: true, numerico: true, ocultarEnTablet: true },
+  { clave: 'totalCabezas', etiqueta: 'Total Cabezas', alinear: 'derecha', ordenable: true, numerico: true },
+  { clave: 'estadoSync', etiqueta: 'Estado', alinear: 'centro', ordenable: true },
+]
 
 const estanciasFiltradas = computed(() => {
   const termino = busqueda.value.trim().toLowerCase()
-  if (!termino) return estancias.value
-  return estancias.value.filter(
-    (e) => e.nombre.toLowerCase().includes(termino) || e.propietario.toLowerCase().includes(termino),
-  )
+  return estancias.value.filter((e) => {
+    const coincideTexto = !termino || e.nombre.toLowerCase().includes(termino) || e.propietario.toLowerCase().includes(termino)
+    const coincideEstado = !filtroEstado.value || e.estadoSync === filtroEstado.value
+    return coincideTexto && coincideEstado
+  })
 })
 
-const { paginaActual, totalPaginas, itemsPagina, porPagina } = usePaginacion(estanciasFiltradas, 8)
+const { ordenarPor, direccion, alternar, comparar } = useOrdenable()
+const estanciasOrdenadas = computed(() =>
+  ordenarPor.value ? [...estanciasFiltradas.value].sort(comparar) : estanciasFiltradas.value,
+)
+
+const { paginaActual, totalPaginas, itemsPagina, porPagina } = usePaginacion(estanciasOrdenadas, 8)
 
 function ubicacion(e: EstanciaDto): string {
   return [e.departamento, e.provincia].filter(Boolean).join(' / ') || '—'
@@ -109,15 +140,18 @@ async function confirmarEliminacion() {
         </RouterLink>
       </div>
 
-      <!-- Search -->
-      <div class="relative w-full sm:max-w-md">
-        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-outline flex"><AppIcon name="search" :size="20" /></span>
-        <input
-          v-model="busqueda"
-          type="text"
-          placeholder="Buscar por nombre o propietario..."
-          class="w-full h-[48px] pl-12 pr-4 bg-surface-container-lowest border border-outline-variant rounded-full focus:ring-2 focus:ring-primary focus:border-primary font-body-md text-body-md text-on-surface placeholder:text-outline-variant outline-none transition-shadow shadow-sm"
-        />
+      <!-- Search + filtro rápido -->
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div class="relative w-full sm:max-w-md">
+          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-outline flex"><AppIcon name="search" :size="20" /></span>
+          <input
+            v-model="busqueda"
+            type="text"
+            placeholder="Buscar por nombre o propietario..."
+            class="w-full h-[48px] pl-12 pr-4 bg-surface-container-lowest border border-outline-variant rounded-full focus:ring-2 focus:ring-primary focus:border-primary font-body-md text-body-md text-on-surface placeholder:text-outline-variant outline-none transition-shadow shadow-sm"
+          />
+        </div>
+        <FilterChips v-model="filtroEstado" :opciones="OPCIONES_ESTADO" />
       </div>
 
       <AlertBanner v-if="errorMensaje" variant="error">{{ errorMensaje }}</AlertBanner>
@@ -135,140 +169,80 @@ async function confirmarEliminacion() {
       >
         <AppIcon name="home_work" :size="44" class="text-outline-variant" />
         <p class="font-body-lg text-body-lg text-on-surface-variant">
-          {{ busqueda ? 'No se encontraron estancias con ese criterio.' : 'No hay estancias registradas.' }}
+          {{ busqueda || filtroEstado ? 'No se encontraron estancias con ese criterio.' : 'No hay estancias registradas.' }}
         </p>
       </div>
 
-      <!-- Desktop table -->
-      <div v-else class="hidden md:block bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-surface-container-low border-b border-outline-variant">
-                <th class="py-4 px-6 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Nombre</th>
-                <th class="py-4 px-6 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Propietario</th>
-                <th class="py-4 px-6 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Ubicación</th>
-                <th class="py-4 px-6 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">Captaciones</th>
-                <th class="py-4 px-6 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">Total Cabezas</th>
-                <th class="py-4 px-6 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-center">Estado</th>
-                <th class="py-4 px-6 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-center w-16">Acciones</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-outline-variant">
-              <tr v-for="e in itemsPagina" :key="e.id" class="hover:bg-surface-variant/50 transition-colors">
-                <td class="py-4 px-6">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center text-on-primary-container flex-shrink-0">
-                      <AppIcon name="location_city" :size="20" />
-                    </div>
-                    <span class="font-body-lg text-body-lg text-on-surface font-semibold">{{ e.nombre }}</span>
-                  </div>
-                </td>
-                <td class="py-4 px-6 font-body-md text-body-md text-on-surface">{{ e.propietario }}</td>
-                <td class="py-4 px-6 font-body-md text-body-md text-on-surface-variant">
-                  <span class="flex items-center gap-1">
-                    <AppIcon name="location_on" :size="16" />
-                    {{ ubicacion(e) }}
-                  </span>
-                </td>
-                <td class="py-4 px-6 font-body-md text-body-md text-on-surface text-right">{{ e.cantidadCaptaciones }}</td>
-                <td class="py-4 px-6 font-body-md text-body-md text-on-surface text-right">{{ e.totalCabezas }}</td>
-                <td class="py-4 px-6 text-center">
-                  <SyncBadge :estado="e.estadoSync" />
-                </td>
-                <td class="py-4 px-6 text-center">
-                  <div class="flex items-center justify-center gap-1">
-                    <RouterLink
-                      :to="{ name: 'captaciones', params: { estanciaId: e.id } }"
-                      class="w-10 h-10 rounded-full inline-flex items-center justify-center text-on-surface-variant hover:bg-surface-variant transition-colors"
-                      title="Ver captaciones"
-                      aria-label="Ver captaciones"
-                    >
-                      <AppIcon name="dataset" :size="20" />
-                    </RouterLink>
-                    <RouterLink
-                      v-if="!invitado.activo"
-                      :to="{ name: 'estancias-editar', params: { id: e.id } }"
-                      class="w-10 h-10 rounded-full inline-flex items-center justify-center text-on-surface-variant hover:bg-surface-variant transition-colors"
-                      title="Editar estancia"
-                      aria-label="Editar estancia"
-                    >
-                      <AppIcon name="edit" :size="20" />
-                    </RouterLink>
-                    <button
-                      v-if="puedeEliminar"
-                      type="button"
-                      class="w-10 h-10 rounded-full inline-flex items-center justify-center text-on-surface-variant hover:bg-error-container hover:text-error transition-colors"
-                      title="Eliminar estancia"
-                      aria-label="Eliminar estancia"
-                      @click="pedirConfirmacion(e)"
-                    >
-                      <AppIcon name="delete" :size="20" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Mobile cards -->
-      <div v-if="!cargando && estanciasFiltradas.length > 0" class="md:hidden flex flex-col gap-gutter-mobile">
-        <div
-          v-for="e in itemsPagina"
-          :key="e.id"
-          class="bg-surface-container-lowest rounded-xl p-margin-mobile shadow-sm border border-surface-variant flex flex-col gap-stack-sm"
-        >
-          <div class="flex justify-between items-start">
-            <div class="flex flex-col">
-              <h2 class="font-headline-md text-headline-md text-on-surface">{{ e.nombre }}</h2>
-              <span class="font-body-md text-body-md text-on-surface-variant">Prop: {{ e.propietario }}</span>
+      <DataTable
+        v-else
+        :columnas="columnas"
+        :items="itemsPagina"
+        :clave-fila="(e: EstanciaDto) => e.id"
+        :ordenar-por="ordenarPor"
+        :direccion="direccion"
+        :hacia="(e: EstanciaDto) => ({ name: 'captaciones', params: { estanciaId: e.id } })"
+        :titulo-movil="(e: EstanciaDto) => e.nombre"
+        :subtitulo-movil="(e: EstanciaDto) => `Prop: ${e.propietario}`"
+        @ordenar="alternar"
+      >
+        <template #celda-nombre="{ item }">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center text-on-primary-container flex-shrink-0">
+              <AppIcon name="location_city" :size="20" />
             </div>
-            <div class="flex items-center gap-1">
-              <RouterLink
-                v-if="!invitado.activo"
-                :to="{ name: 'estancias-editar', params: { id: e.id } }"
-                class="text-on-surface-variant h-8 w-8 flex items-center justify-center rounded-full hover:bg-surface-container-low"
-                title="Editar estancia"
-                aria-label="Editar estancia"
-              >
-                <AppIcon name="edit" :size="18" />
-              </RouterLink>
-              <button
-                v-if="puedeEliminar"
-                type="button"
-                class="text-on-surface-variant h-8 w-8 flex items-center justify-center rounded-full hover:bg-error-container hover:text-error"
-                title="Eliminar estancia"
-                aria-label="Eliminar estancia"
-                @click="pedirConfirmacion(e)"
-              >
-                <AppIcon name="delete" :size="18" />
-              </button>
-            </div>
+            <span class="font-body-lg text-body-lg text-on-surface font-semibold max-w-[28ch] truncate" :title="item.nombre">{{ item.nombre }}</span>
           </div>
+        </template>
+        <template #celda-ubicacion="{ item }">
+          <span class="flex items-center gap-1 max-w-[22ch] truncate" :title="ubicacion(item)">
+            <AppIcon name="location_on" :size="16" class="flex-shrink-0" />
+            {{ ubicacion(item) }}
+          </span>
+        </template>
+        <template #celda-estadoSync="{ item }">
+          <SyncBadge :estado="item.estadoSync" />
+        </template>
+
+        <template #acciones="{ item }">
+          <RowActionsMenu v-if="mostrarAcciones">
+            <RouterLink
+              v-if="puedeEditar"
+              :to="{ name: 'estancias-editar', params: { id: item.id } }"
+              class="flex items-center gap-2 px-3 py-2 font-body-md text-body-md text-on-surface hover:bg-surface-container-low transition-colors"
+            >
+              <AppIcon name="edit" :size="16" /> Editar
+            </RouterLink>
+            <button
+              v-if="puedeEliminar"
+              type="button"
+              class="w-full flex items-center gap-2 px-3 py-2 font-body-md text-body-md text-on-surface hover:bg-error-container hover:text-error transition-colors"
+              @click="pedirConfirmacion(item)"
+            >
+              <AppIcon name="delete" :size="16" /> Eliminar
+            </button>
+          </RowActionsMenu>
+        </template>
+
+        <template #extra-movil="{ item }">
           <div class="flex items-center gap-1 text-on-surface-variant font-body-md text-body-md">
             <AppIcon name="location_on" :size="16" />
-            {{ ubicacion(e) }}
+            {{ ubicacion(item) }}
           </div>
           <div class="flex gap-stack-sm mt-base flex-wrap">
-            <RouterLink
-              :to="{ name: 'captaciones', params: { estanciaId: e.id } }"
-              class="flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded-md font-label-md text-label-md text-primary"
-            >
+            <span class="flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded-md font-label-md text-label-md text-primary">
               <AppIcon name="dataset" :size="14" />
-              {{ e.cantidadCaptaciones }} Captaciones
-            </RouterLink>
+              {{ item.cantidadCaptaciones }} Captaciones
+            </span>
             <div class="flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded-md font-label-md text-label-md text-on-surface">
               <AppIcon name="pets" :size="14" />
-              {{ e.totalCabezas }} Cabezas
+              {{ item.totalCabezas }} Cabezas
             </div>
           </div>
           <div class="mt-base">
-            <SyncBadge :estado="e.estadoSync" />
+            <SyncBadge :estado="item.estadoSync" />
           </div>
-        </div>
-      </div>
+        </template>
+      </DataTable>
 
       <Pagination
         v-if="!cargando && estanciasFiltradas.length > 0"

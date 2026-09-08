@@ -8,21 +8,48 @@ import EstadoUsuarioBadge from '@/components/ui/EstadoUsuarioBadge.vue'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import DataTable from '@/components/ui/DataTable.vue'
+import FilterChips from '@/components/ui/FilterChips.vue'
+import { useOrdenable } from '@/composables/useOrdenable'
 import { ApiError } from '@/api/client'
 import * as usuariosApi from '@/api/usuarios'
-import { RolUsuarioLabels } from '@/types/enums'
+import { RolUsuarioLabels, type EstadoUsuario } from '@/types/enums'
 import type { UsuarioDto } from '@/types/dto'
+import type { ColumnaTabla } from '@/types/dataTable'
 
 const usuarios = ref<UsuarioDto[]>([])
 const cargando = ref(true)
 const errorMensaje = ref<string | null>(null)
 const busqueda = ref('')
+const filtroEstado = ref<'' | EstadoUsuario>('')
+
+const OPCIONES_ESTADO: { valor: '' | EstadoUsuario; etiqueta: string }[] = [
+  { valor: '', etiqueta: 'Todos' },
+  { valor: 'Activo', etiqueta: 'Activo' },
+  { valor: 'Pendiente', etiqueta: 'Pendiente' },
+  { valor: 'Suspendido', etiqueta: 'Suspendido' },
+]
+
+const columnas: ColumnaTabla<UsuarioDto>[] = [
+  { clave: 'nombre', etiqueta: 'Nombre', ordenable: true },
+  { clave: 'email', etiqueta: 'Correo', ordenable: true },
+  { clave: 'cargo', etiqueta: 'Cargo', ocultarEnTablet: true },
+  { clave: 'rol', etiqueta: 'Rol', ordenable: true },
+  { clave: 'estado', etiqueta: 'Estado', alinear: 'centro', ordenable: true },
+  { clave: 'fechaCreacion', etiqueta: 'Creado', ordenable: true, ocultarEnTablet: true },
+]
 
 const filtrados = computed(() => {
   const t = busqueda.value.trim().toLowerCase()
-  if (!t) return usuarios.value
-  return usuarios.value.filter((u) => u.nombre.toLowerCase().includes(t) || u.email.toLowerCase().includes(t))
+  return usuarios.value.filter((u) => {
+    const coincideTexto = !t || u.nombre.toLowerCase().includes(t) || u.email.toLowerCase().includes(t)
+    const coincideEstado = !filtroEstado.value || u.estado === filtroEstado.value
+    return coincideTexto && coincideEstado
+  })
 })
+
+const { ordenarPor, direccion, alternar, comparar } = useOrdenable()
+const usuariosOrdenados = computed(() => (ordenarPor.value ? [...filtrados.value].sort(comparar) : filtrados.value))
 
 async function cargar() {
   cargando.value = true
@@ -55,14 +82,17 @@ function formatearFecha(iso: string): string {
         </RouterLink>
       </div>
 
-      <div class="relative w-full sm:max-w-md">
-        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-outline flex"><AppIcon name="search" :size="20" /></span>
-        <input
-          v-model="busqueda"
-          type="text"
-          placeholder="Buscar por nombre o correo..."
-          class="w-full h-[48px] pl-12 pr-4 bg-surface-container-lowest border border-outline-variant rounded-full focus:ring-2 focus:ring-primary focus:border-primary font-body-md text-body-md text-on-surface placeholder:text-outline-variant outline-none shadow-sm"
-        />
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div class="relative w-full sm:max-w-md">
+          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-outline flex"><AppIcon name="search" :size="20" /></span>
+          <input
+            v-model="busqueda"
+            type="text"
+            placeholder="Buscar por nombre o correo..."
+            class="w-full h-[48px] pl-12 pr-4 bg-surface-container-lowest border border-outline-variant rounded-full focus:ring-2 focus:ring-primary focus:border-primary font-body-md text-body-md text-on-surface placeholder:text-outline-variant outline-none shadow-sm"
+          />
+        </div>
+        <FilterChips v-model="filtroEstado" :opciones="OPCIONES_ESTADO" />
       </div>
 
       <AlertBanner v-if="errorMensaje" variant="error">{{ errorMensaje }}</AlertBanner>
@@ -77,48 +107,35 @@ function formatearFecha(iso: string): string {
         <p class="font-body-lg text-body-lg text-on-surface-variant">No se encontraron usuarios.</p>
       </div>
 
-      <div v-else class="hidden md:block bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-surface-container-low border-b border-outline-variant">
-              <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Nombre</th>
-              <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Correo</th>
-              <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Cargo</th>
-              <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Rol</th>
-              <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Estado</th>
-              <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Creado</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-outline-variant">
-            <tr v-for="u in filtrados" :key="u.id" class="hover:bg-surface-container-low transition-colors cursor-pointer" @click="$router.push({ name: 'usuarios-detalle', params: { id: u.id } })">
-              <td class="p-4 font-body-lg text-body-lg font-semibold text-on-surface">{{ u.nombre }}</td>
-              <td class="p-4 font-body-md text-on-surface-variant">{{ u.email }}</td>
-              <td class="p-4 font-body-md text-on-surface-variant">{{ u.cargo ?? '—' }}</td>
-              <td class="p-4 font-body-md text-on-surface">{{ RolUsuarioLabels[u.rol] }}</td>
-              <td class="p-4"><EstadoUsuarioBadge :estado="u.estado" /></td>
-              <td class="p-4 font-body-md text-on-surface-variant">{{ formatearFecha(u.fechaCreacion) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        v-else
+        :columnas="columnas"
+        :items="usuariosOrdenados"
+        :clave-fila="(u: UsuarioDto) => u.id"
+        :ordenar-por="ordenarPor"
+        :direccion="direccion"
+        :hacia="(u: UsuarioDto) => ({ name: 'usuarios-detalle', params: { id: u.id } })"
+        :titulo-movil="(u: UsuarioDto) => u.nombre"
+        :subtitulo-movil="(u: UsuarioDto) => u.email"
+        @ordenar="alternar"
+      >
+        <template #celda-nombre="{ item }">
+          <span class="font-body-lg text-body-lg font-semibold text-on-surface block max-w-[24ch] truncate" :title="item.nombre">{{ item.nombre }}</span>
+        </template>
+        <template #celda-cargo="{ item }">{{ item.cargo ?? '—' }}</template>
+        <template #celda-rol="{ item }">{{ RolUsuarioLabels[item.rol] }}</template>
+        <template #celda-estado="{ item }"><EstadoUsuarioBadge :estado="item.estado" /></template>
+        <template #celda-fechaCreacion="{ item }">{{ formatearFecha(item.fechaCreacion) }}</template>
 
-      <div v-if="!cargando && filtrados.length > 0" class="md:hidden flex flex-col gap-gutter-mobile">
-        <RouterLink
-          v-for="u in filtrados"
-          :key="u.id"
-          :to="{ name: 'usuarios-detalle', params: { id: u.id } }"
-          class="bg-surface-container-lowest rounded-xl p-margin-mobile shadow-sm border border-surface-variant flex flex-col gap-stack-sm"
-        >
-          <div class="flex justify-between items-start">
-            <div>
-              <h2 class="font-headline-md text-headline-md text-on-surface">{{ u.nombre }}</h2>
-              <p class="font-body-md text-body-md text-on-surface-variant">{{ u.email }}</p>
-            </div>
-            <EstadoUsuarioBadge :estado="u.estado" />
+        <template #extra-movil="{ item }">
+          <div class="flex items-center justify-between gap-2">
+            <p class="font-label-md text-label-md text-on-surface-variant">
+              {{ RolUsuarioLabels[item.rol] }} · {{ item.cargo ?? 'Sin cargo' }}
+            </p>
+            <EstadoUsuarioBadge :estado="item.estado" />
           </div>
-          <p class="font-label-md text-label-md text-on-surface-variant">{{ RolUsuarioLabels[u.rol] }} · {{ u.cargo ?? 'Sin cargo' }}</p>
-        </RouterLink>
-      </div>
+        </template>
+      </DataTable>
     </div>
   </AppShell>
 </template>
