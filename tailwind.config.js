@@ -87,14 +87,14 @@ export default {
         'touch-target-min': '48px',
       },
       fontFamily: {
-        'headline-xl': ['Inter', 'sans-serif'],
-        'headline-lg': ['Inter', 'sans-serif'],
-        'headline-md': ['Inter', 'sans-serif'],
-        'body-lg': ['Inter', 'sans-serif'],
-        'body-md': ['Inter', 'sans-serif'],
-        'label-md': ['Inter', 'sans-serif'],
-        button: ['Inter', 'sans-serif'],
-        'button-sm': ['Inter', 'sans-serif'],
+        'headline-xl': ['IBM Plex Sans', 'sans-serif'],
+        'headline-lg': ['IBM Plex Sans', 'sans-serif'],
+        'headline-md': ['IBM Plex Sans', 'sans-serif'],
+        'body-lg': ['IBM Plex Sans', 'sans-serif'],
+        'body-md': ['IBM Plex Sans', 'sans-serif'],
+        'label-md': ['IBM Plex Sans', 'sans-serif'],
+        button: ['IBM Plex Sans', 'sans-serif'],
+        'button-sm': ['IBM Plex Sans', 'sans-serif'],
       },
       fontSize: {
         // Único paso por encima de headline-lg: reservado para números

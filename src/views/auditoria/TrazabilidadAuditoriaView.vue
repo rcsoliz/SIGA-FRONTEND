@@ -6,6 +6,7 @@ import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import Pagination from '@/components/ui/Pagination.vue'
 import AppIcon, { type NombreIcono } from '@/components/ui/AppIcon.vue'
+import DataTable from '@/components/ui/DataTable.vue'
 import { ApiError } from '@/api/client'
 import * as auditoriaApi from '@/api/auditoria'
 import * as usuariosApi from '@/api/usuarios'
@@ -13,6 +14,7 @@ import { usePaginacion } from '@/composables/usePaginacion'
 import { AccionAuditoriaLabels } from '@/types/enums'
 import type { ModuloAuditoria } from '@/types/enums'
 import type { LogAuditoriaDto, UsuarioDto } from '@/types/dto'
+import type { ColumnaTabla } from '@/types/dataTable'
 
 const MODULOS: ModuloAuditoria[] = ['Usuario', 'Estancia', 'CaptacionGanado', 'Pesaje', 'Sanitario', 'Movimiento', 'Alimentacion']
 
@@ -22,6 +24,14 @@ const ACCION_ESTILOS: Record<string, string> = {
   Modificacion: 'bg-secondary-container/50 text-secondary border-secondary/20',
   Eliminacion: 'bg-error-container text-on-error-container border-error/20',
 }
+
+const columnas: ColumnaTabla<LogAuditoriaDto>[] = [
+  { clave: 'fechaHora', etiqueta: 'Fecha y Hora' },
+  { clave: 'usuarioNombre', etiqueta: 'Usuario' },
+  { clave: 'accion', etiqueta: 'Acción' },
+  { clave: 'modulo', etiqueta: 'Módulo', ocultarEnTablet: true },
+  { clave: 'detalle', etiqueta: 'Detalle', ocultarEnTablet: true },
+]
 
 const filtros = reactive({ desde: '', hasta: '', usuarioId: '', modulo: '' })
 const usuarios = ref<UsuarioDto[]>([])
@@ -126,47 +136,33 @@ onMounted(async () => {
         <p class="font-body-lg text-body-lg text-on-surface-variant">No hay eventos de auditoría con estos filtros.</p>
       </div>
 
-      <div v-else class="hidden md:block bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-surface-container-low border-b border-outline-variant">
-              <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Fecha y Hora</th>
-              <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Usuario</th>
-              <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Acción</th>
-              <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Módulo</th>
-              <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Detalle</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-outline-variant">
-            <tr v-for="log in itemsPagina" :key="log.id" class="hover:bg-surface-container-low transition-colors">
-              <td class="p-4 font-body-md text-on-surface-variant whitespace-nowrap">{{ formatearFechaHora(log.fechaHora) }}</td>
-              <td class="p-4 font-body-md text-on-surface">{{ log.usuarioNombre }}</td>
-              <td class="p-4">
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-label-md text-label-md border" :class="ACCION_ESTILOS[log.accion]">
-                  <AppIcon :name="ACCION_ICONOS[log.accion]" :size="16" />
-                  {{ AccionAuditoriaLabels[log.accion] }}
-                </span>
-              </td>
-              <td class="p-4 font-body-md text-on-surface-variant">{{ log.modulo }}</td>
-              <td class="p-4 font-body-md text-on-surface">{{ log.detalle ?? '—' }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        v-else
+        :columnas="columnas"
+        :items="itemsPagina"
+        :clave-fila="(log: LogAuditoriaDto) => log.id"
+        :titulo-movil="(log: LogAuditoriaDto) => `${log.usuarioNombre} · ${log.modulo}`"
+        :subtitulo-movil="(log: LogAuditoriaDto) => formatearFechaHora(log.fechaHora)"
+      >
+        <template #celda-fechaHora="{ item }">
+          <span class="whitespace-nowrap">{{ formatearFechaHora(item.fechaHora) }}</span>
+        </template>
+        <template #celda-accion="{ item }">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-label-md text-label-md border" :class="ACCION_ESTILOS[item.accion]">
+            <AppIcon :name="ACCION_ICONOS[item.accion]" :size="16" />
+            {{ AccionAuditoriaLabels[item.accion] }}
+          </span>
+        </template>
+        <template #celda-detalle="{ item }">{{ item.detalle ?? '—' }}</template>
 
-      <div v-if="!cargando && logs.length > 0" class="md:hidden flex flex-col gap-gutter-mobile">
-        <div v-for="log in itemsPagina" :key="log.id" class="bg-surface-container-lowest rounded-xl p-margin-mobile shadow-sm border border-outline-variant flex flex-col gap-stack-sm">
-          <div class="flex justify-between items-start">
-            <span class="font-label-md text-label-md text-on-surface-variant">{{ formatearFechaHora(log.fechaHora) }}</span>
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-label-md text-label-md border" :class="ACCION_ESTILOS[log.accion]">
-              <AppIcon :name="ACCION_ICONOS[log.accion]" :size="14" />
-              {{ AccionAuditoriaLabels[log.accion] }}
-            </span>
-          </div>
-          <p class="font-body-md text-body-md text-on-surface font-semibold">{{ log.usuarioNombre }} · {{ log.modulo }}</p>
-          <p v-if="log.detalle" class="font-body-md text-body-md text-on-surface-variant">{{ log.detalle }}</p>
-        </div>
-      </div>
+        <template #extra-movil="{ item }">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-label-md text-label-md border w-fit" :class="ACCION_ESTILOS[item.accion]">
+            <AppIcon :name="ACCION_ICONOS[item.accion]" :size="14" />
+            {{ AccionAuditoriaLabels[item.accion] }}
+          </span>
+          <p v-if="item.detalle" class="font-body-md text-body-md text-on-surface-variant">{{ item.detalle }}</p>
+        </template>
+      </DataTable>
 
       <Pagination
         v-if="!cargando && logs.length > 0"

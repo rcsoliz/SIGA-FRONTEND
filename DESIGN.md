@@ -51,46 +51,46 @@ colors:
   inverse-on-surface: "#F0F1F2"
 typography:
   headline-xl:
-    fontFamily: "Inter, sans-serif"
+    fontFamily: "IBM Plex Sans, sans-serif"
     fontSize: "32px"
     fontWeight: 700
     lineHeight: "40px"
     letterSpacing: "-0.02em"
   headline-lg:
-    fontFamily: "Inter, sans-serif"
+    fontFamily: "IBM Plex Sans, sans-serif"
     fontSize: "24px"
     fontWeight: 700
     lineHeight: "32px"
     letterSpacing: "-0.02em"
   headline-md:
-    fontFamily: "Inter, sans-serif"
+    fontFamily: "IBM Plex Sans, sans-serif"
     fontSize: "20px"
     fontWeight: 600
     lineHeight: "28px"
     letterSpacing: "-0.01em"
   body-lg:
-    fontFamily: "Inter, sans-serif"
+    fontFamily: "IBM Plex Sans, sans-serif"
     fontSize: "16px"
     fontWeight: 400
     lineHeight: "24px"
   body-md:
-    fontFamily: "Inter, sans-serif"
+    fontFamily: "IBM Plex Sans, sans-serif"
     fontSize: "14px"
     fontWeight: 400
     lineHeight: "20px"
   label-md:
-    fontFamily: "Inter, sans-serif"
+    fontFamily: "IBM Plex Sans, sans-serif"
     fontSize: "12px"
     fontWeight: 600
     lineHeight: "16px"
     letterSpacing: "0.05em"
   button:
-    fontFamily: "Inter, sans-serif"
+    fontFamily: "IBM Plex Sans, sans-serif"
     fontSize: "16px"
     fontWeight: 600
     lineHeight: "24px"
   button-sm:
-    fontFamily: "Inter, sans-serif"
+    fontFamily: "IBM Plex Sans, sans-serif"
     fontSize: "14px"
     fontWeight: 600
     lineHeight: "20px"
@@ -181,7 +181,7 @@ implemented-and-available, not yet a confirmed product commitment.
 
 **Key Characteristics:**
 - Material Design 3 semantic color roles (primary/secondary/tertiary/error × on/container/fixed, full surface-container ramp), sourced as RGB triples in `theme.css` for Tailwind's opacity-composition pattern.
-- Inter for every text role; no display/serif pairing — this is a utility system, not an editorial one.
+- IBM Plex Sans for every text role; no display/serif pairing — this is a utility system, not an editorial one.
 - 48px minimum touch target on every interactive control, full-width by default on mobile.
 - Flat-by-default elevation; `shadow-lg` reserved strictly for anything that floats above the page.
 - Firm, springy press feedback (`active:scale-[0.95]`–`[0.98]`) rather than hover-driven affordance, because the primary device class is touch.
@@ -215,10 +215,12 @@ Three brand hues on a near-neutral M3 surface ramp; color carries meaning (state
 
 ## Typography
 
-**Body/UI Font:** Inter (system sans-serif fallback)
+**Body/UI Font:** IBM Plex Sans (system sans-serif fallback)
 **Icon Font:** Material Symbols Outlined (`FILL 0` default, `FILL 1` for emphasized/selected icons)
 
-**Character:** One typeface, weight and size doing all the work. Inter's low-contrast, open forms hold up at small sizes on cheap screens in direct sunlight — there's no *separate display face*, only Inter at a bigger step. The one narrow exception is KPI stat numbers (Headline XL), where a genuinely bigger number earns its place on a dashboard tile — everywhere else stays legible density, not a hero moment.
+**Character:** One typeface, weight and size doing all the work. IBM Plex Sans's low-contrast, open forms hold up at small sizes on cheap screens in direct sunlight, with a technical/instrument character that fits a field-data-capture tool better than a generic UI grotesque — there's no *separate display face*, only Plex Sans at a bigger step. The one narrow exception is KPI stat numbers (Headline XL), where a genuinely bigger number earns its place on a dashboard tile — everywhere else stays legible density, not a hero moment.
+
+> Migrated from Inter (2026-09) after client feedback that the typography read as generic — see `AgroField Type` comparison artifact for the rationale and alternatives considered (Public Sans, Roboto).
 
 ### Hierarchy
 - **Headline XL** (700, 32px/40px, -0.02em): KPI stat-tile numbers only (`KpiCard.vue`) — never used for page titles or section headings.
@@ -305,6 +307,6 @@ Lucide (`@lucide/vue`), rendered through one `AppIcon.vue` wrapper (`src/compone
 - **Don't** introduce gradients, illustration, imagery, or skeuomorphic texture — the system has none, and its flat/tonal identity depends on staying that way.
 - **Don't** reintroduce an icon font (Material Symbols or otherwise) — the ligature-glyph look was the thing this system moved away from; real vector strokes only.
 - **Don't** shrink touch targets below 48px on any surface a Captador might use in the field, even on dense Administrador screens.
-- **Don't** add a second display/heading typeface — Inter carries the entire hierarchy through weight and size alone.
+- **Don't** add a second display/heading typeface — IBM Plex Sans carries the entire hierarchy through weight and size alone.
 - **Don't** treat dark-mode values as a finished product decision — they're implemented in `theme.css` but whether dark mode ships is still open (`docs/mejoras-frontend.md` #4); don't cite their existence as proof the feature is done.
 - **Don't** rely on hover-only affordance for anything that must work on the primary device class (touch); hover states are a bonus for desktop, not the mechanism.
