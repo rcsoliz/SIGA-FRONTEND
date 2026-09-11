@@ -7,7 +7,9 @@ import AppShell from '@/components/layout/AppShell.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import FormField from '@/components/ui/FormField.vue'
+import RequiredHint from '@/components/ui/RequiredHint.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import DataTable from '@/components/ui/DataTable.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useInvitadoStore } from '@/stores/invitado'
 import { useToast } from '@/composables/useToast'
@@ -16,6 +18,7 @@ import * as captacionesApi from '@/api/captaciones'
 import * as invitadoApi from '@/services/invitadoApi'
 import { BITACORAS, type TipoBitacora } from '@/config/bitacoras'
 import type { CaptacionGanadoDto } from '@/types/dto'
+import type { ColumnaTabla } from '@/types/dataTable'
 
 const props = defineProps<{ tipo: TipoBitacora }>()
 const config = computed(() => BITACORAS[props.tipo])
@@ -32,6 +35,27 @@ const captacion = ref<CaptacionGanadoDto | null>(null)
 const historial = ref<any[]>([])
 const cargando = ref(true)
 const errorMensaje = ref<string | null>(null)
+
+// <DataTable> renderiza cada columna con `item[col.clave]` salvo que se le dé
+// un slot — acá conviene lo primero: se precomputa cada celda ya formateada
+// vía `config.formatearCelda` (genérica a las 4 bitácoras) en vez de declarar
+// un slot por columna para un set de columnas que cambia según `tipo`.
+const columnasTabla = computed<ColumnaTabla[]>(() =>
+  config.value.columnas.map((col) => ({
+    clave: col.key,
+    etiqueta: col.label,
+    alinear: col.align === 'right' ? 'derecha' : col.align === 'center' ? 'centro' : 'izquierda',
+    ocultarEnTablet: col.key === 'observaciones',
+  })),
+)
+
+const filasTabla = computed(() =>
+  historial.value.map((row) => {
+    const fila: Record<string, any> = { id: row.id, crudo: row }
+    for (const col of config.value.columnas) fila[col.key] = config.value.formatearCelda(row, col.key)
+    return fila
+  }),
+)
 
 const form = reactive<Record<string, any>>({})
 
@@ -125,6 +149,7 @@ async function registrar() {
               Nuevo Registro
             </h3>
             <form class="flex flex-col gap-gutter-mobile" @submit.prevent="registrar">
+              <RequiredHint />
               <FormField
                 v-for="campo in config.campos"
                 :key="campo.key"
@@ -146,66 +171,37 @@ async function registrar() {
         </div>
 
         <!-- Historial -->
-        <div class="lg:col-span-8 bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden">
-          <div class="p-stack-md border-b border-outline-variant/30 flex items-center gap-2">
+        <div class="lg:col-span-8 flex flex-col gap-stack-md">
+          <div class="flex items-center gap-2">
             <AppIcon name="history" :size="20" class="text-primary" />
             <h3 class="font-headline-md text-headline-md text-on-background">Historial</h3>
           </div>
 
-          <div v-if="historial.length === 0" class="p-8 text-center font-body-md text-body-md text-on-surface-variant">
+          <div
+            v-if="historial.length === 0"
+            class="p-8 text-center font-body-md text-body-md text-on-surface-variant bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30"
+          >
             No hay registros aún.
           </div>
 
-          <!-- Desktop table -->
-          <div v-else class="hidden md:block overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-              <thead>
-                <tr class="bg-surface-container border-b border-outline-variant/50">
-                  <th
-                    v-for="col in config.columnas"
-                    :key="col.key"
-                    class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider"
-                    :class="col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'"
-                  >
-                    {{ col.label }}
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-outline-variant/20">
-                <tr v-for="row in historial" :key="row.id" class="hover:bg-surface-variant/30 transition-colors">
-                  <td
-                    v-for="col in config.columnas"
-                    :key="col.key"
-                    class="p-4 font-body-md text-body-md text-on-background"
-                    :class="col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'"
-                  >
-                    {{ config.formatearCelda(row, col.key) }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Mobile cards -->
-          <div v-if="historial.length > 0" class="md:hidden flex flex-col gap-gutter-mobile p-margin-mobile">
-            <div
-              v-for="(row, idx) in historial"
-              :key="row.id"
-              class="bg-surface p-margin-mobile rounded-lg border border-outline-variant shadow-sm flex flex-col gap-2 relative overflow-hidden"
-            >
-              <div class="absolute top-0 left-0 w-1 h-full" :class="idx === 0 ? 'bg-primary' : 'bg-outline-variant'" />
-              <div class="flex justify-between items-start">
-                <span class="font-label-md text-label-md text-on-surface-variant">{{ config.formatearCelda(row, 'fecha') }}</span>
-                <span class="font-headline-md text-headline-md" :class="idx === 0 ? 'text-primary' : 'text-on-surface'">
-                  {{ config.resumenPrincipal(row) }}
-                </span>
-              </div>
-              <span class="text-body-md text-on-surface-variant">{{ config.resumenSecundario(row) }}</span>
-              <p v-if="row.observaciones" class="font-body-md text-body-md text-on-surface-variant italic mt-1 border-t border-surface-variant/50 pt-2">
-                "{{ row.observaciones }}"
+          <DataTable
+            v-else
+            :columnas="columnasTabla"
+            :items="filasTabla"
+            :clave-fila="(fila) => fila.id"
+            :titulo-movil="(fila) => config.resumenPrincipal(fila.crudo)"
+            :subtitulo-movil="(fila) => config.resumenSecundario(fila.crudo)"
+          >
+            <template #extra-movil="{ item }">
+              <span class="font-label-md text-label-md text-on-surface-variant">{{ config.formatearCelda(item.crudo, 'fecha') }}</span>
+              <p
+                v-if="item.crudo.observaciones"
+                class="font-body-md text-body-md text-on-surface-variant italic mt-1 border-t border-surface-variant/50 pt-2"
+              >
+                "{{ item.crudo.observaciones }}"
               </p>
-            </div>
-          </div>
+            </template>
+          </DataTable>
         </div>
       </div>
     </div>

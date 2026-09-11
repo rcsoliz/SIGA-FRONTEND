@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import FormField from '@/components/ui/FormField.vue'
+import RequiredHint from '@/components/ui/RequiredHint.vue'
 import GpsCapture from '@/components/ui/GpsCapture.vue'
 import IconOptionGroup from '@/components/ui/IconOptionGroup.vue'
 import AppIcon, { type NombreIcono } from '@/components/ui/AppIcon.vue'
@@ -289,6 +290,7 @@ function cancelar() {
       </div>
 
       <AlertBanner v-if="errorMensaje" variant="error">{{ errorMensaje }}</AlertBanner>
+      <RequiredHint />
 
       <!-- Sección 1: Datos Generales -->
       <section class="bg-surface-container-low rounded-xl p-4 md:p-6 border border-outline-variant/50 flex flex-col gap-gutter-mobile md:gap-6">

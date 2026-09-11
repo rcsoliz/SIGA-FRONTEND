@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import FormField from '@/components/ui/FormField.vue'
+import RequiredHint from '@/components/ui/RequiredHint.vue'
 import EstadoUsuarioBadge from '@/components/ui/EstadoUsuarioBadge.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
@@ -198,6 +199,7 @@ async function agregarPermiso() {
 
           <form v-else class="flex flex-col gap-stack-md" @submit.prevent="guardarEdicion">
             <AlertBanner v-if="errorEdicion" variant="error">{{ errorEdicion }}</AlertBanner>
+            <RequiredHint />
             <FormField v-model="formEdicion.nombre" label="Nombre" required />
             <FormField v-model="formEdicion.cargo" label="Cargo" />
             <FormField v-model="formEdicion.estado" type="select" label="Estado" required :options="estadoOptions" />
@@ -235,7 +237,7 @@ async function agregarPermiso() {
           </div>
           <div class="flex flex-col sm:flex-row gap-stack-sm items-start sm:items-end pt-2 border-t border-outline-variant">
             <FormField v-model="nuevoSector.nombreSector" label="Nuevo sector" placeholder="Ej. Sector Norte" class="flex-1 w-full" />
-            <FormField v-model="nuevoSector.zona" label="Zona (opcional)" placeholder="Ej. Zona A" class="flex-1 w-full" />
+            <FormField v-model="nuevoSector.zona" label="Zona" placeholder="Ej. Zona A" class="flex-1 w-full" />
             <BaseButton icon="add" :block="false" :loading="agregandoSector" class="w-full sm:w-auto" @click="agregarSector">Asignar</BaseButton>
           </div>
           <AlertBanner v-if="errorSector" variant="error">{{ errorSector }}</AlertBanner>

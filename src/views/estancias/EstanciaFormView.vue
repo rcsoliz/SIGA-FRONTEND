@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import FormField from '@/components/ui/FormField.vue'
+import RequiredHint from '@/components/ui/RequiredHint.vue'
 import GpsCapture from '@/components/ui/GpsCapture.vue'
 import SkeletonForm from '@/components/ui/SkeletonForm.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
@@ -156,6 +157,7 @@ function cancelar() {
         class="flex flex-col gap-gutter-mobile md:gap-stack-lg md:bg-surface-container-lowest md:rounded-xl md:shadow-sm md:border md:border-outline-variant md:p-6 lg:p-8"
         @submit.prevent="guardar"
       >
+        <RequiredHint />
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-gutter-mobile md:gap-y-6">
           <FormField v-model="form.nombre" label="Nombre de la estancia" required placeholder="Ej. La Candelaria" />
           <FormField v-model="form.propietario" label="Propietario" required placeholder="Nombre o Razón Social" />

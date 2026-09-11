@@ -10,7 +10,6 @@
 // depender de un campo que cambia de valor cada día sin que el registro se
 // haya tocado.
 import { computed, onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
 import autoTable from 'jspdf-autotable'
 import AppShell from '@/components/layout/AppShell.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
@@ -19,13 +18,16 @@ import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import Pagination from '@/components/ui/Pagination.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import DataTable from '@/components/ui/DataTable.vue'
 import { usePaginacion } from '@/composables/usePaginacion'
+import { useOrdenable } from '@/composables/useOrdenable'
 import { ApiError } from '@/api/client'
 import * as estanciasApi from '@/api/estancias'
 import * as captacionesApi from '@/api/captaciones'
 import { crearDocumentoPdf, nombreArchivoPdf, ALTO_ENCABEZADO } from '@/utils/pdfReporte'
 import { CategoriaGanadoLabels } from '@/types/enums'
 import type { CategoriaGanado } from '@/types/enums'
+import type { ColumnaTabla } from '@/types/dataTable'
 
 interface LoteProximo {
   estanciaId: string
@@ -44,6 +46,14 @@ const errorMensaje = ref<string | null>(null)
 const lotes = ref<LoteProximo[]>([])
 const lotesSinFecha = ref(0)
 const busqueda = ref('')
+
+const columnas: ColumnaTabla<LoteProximo>[] = [
+  { clave: 'estanciaNombre', etiqueta: 'Estancia', ordenable: true },
+  { clave: 'captacionNombre', etiqueta: 'Captación', ordenable: true },
+  { clave: 'categoriaRaza', etiqueta: 'Categoría / Raza', ocultarEnTablet: true },
+  { clave: 'cantidadCabezas', etiqueta: 'Cabezas', alinear: 'derecha', ordenable: true, numerico: true },
+  { clave: 'fechaEstimadaFaena', etiqueta: 'Fecha estimada', ordenable: true },
+]
 
 function diasRestantesDe(fechaIso: string): number {
   const hoy = new Date()
@@ -103,7 +113,12 @@ const lotesFiltrados = computed(() => {
   )
 })
 
-const { paginaActual, totalPaginas, itemsPagina, porPagina } = usePaginacion(lotesFiltrados, 8)
+const { ordenarPor, direccion, alternar, comparar } = useOrdenable()
+// Sin orden elegido, se mantiene el orden por urgencia calculado en cargar() — no es el
+// orden alfabético "por defecto" el que importa acá, sino el de menor diasRestantes primero.
+const lotesOrdenados = computed(() => (ordenarPor.value ? [...lotesFiltrados.value].sort(comparar) : lotesFiltrados.value))
+
+const { paginaActual, totalPaginas, itemsPagina, porPagina } = usePaginacion(lotesOrdenados, 8)
 
 function formatearFecha(iso: string): string {
   return new Date(iso).toLocaleDateString('es-BO', { year: 'numeric', month: 'short', day: 'numeric' })
@@ -214,81 +229,49 @@ function exportarPdf() {
         </p>
       </div>
 
-      <!-- Desktop table -->
-      <div v-else class="hidden md:block bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-surface-container-low border-b border-outline-variant">
-                <th class="py-4 px-6 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Estancia</th>
-                <th class="py-4 px-6 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Captación</th>
-                <th class="py-4 px-6 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Categoría / Raza</th>
-                <th class="py-4 px-6 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">Cabezas</th>
-                <th class="py-4 px-6 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Fecha estimada</th>
-                <th class="py-4 px-6 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Estado</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-outline-variant">
-              <tr v-for="(l, indice) in itemsPagina" :key="`${l.captacionId}-${indice}`" class="hover:bg-surface-variant/50 transition-colors">
-                <td class="py-4 px-6 font-body-md text-body-md text-on-surface-variant">{{ l.estanciaNombre }}</td>
-                <td class="py-4 px-6">
-                  <RouterLink
-                    :to="{ name: 'captaciones-reporte', params: { id: l.captacionId } }"
-                    class="font-body-lg text-body-lg font-semibold text-primary hover:underline"
-                  >
-                    {{ l.captacionNombre }}
-                  </RouterLink>
-                </td>
-                <td class="py-4 px-6 font-body-md text-body-md text-on-surface">
-                  {{ CategoriaGanadoLabels[l.categoria] }}
-                  <span class="text-on-surface-variant">· {{ l.raza ?? 'Raza no especificada' }}</span>
-                </td>
-                <td class="py-4 px-6 font-body-md text-body-md text-on-surface text-right">{{ l.cantidadCabezas }}</td>
-                <td class="py-4 px-6 font-body-md text-body-md text-on-surface-variant">{{ formatearFecha(l.fechaEstimadaFaena) }}</td>
-                <td class="py-4 px-6">
-                  <span
-                    class="inline-flex items-center px-3 py-1 rounded-full font-label-md text-label-md border whitespace-nowrap"
-                    :class="estilosUrgencia[urgenciaDe(l.diasRestantes)]"
-                  >
-                    {{ textoUrgencia(l.diasRestantes) }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable
+        v-else
+        :columnas="columnas"
+        :items="itemsPagina"
+        :clave-fila="(l: LoteProximo) => `${l.captacionId}-${l.categoria}-${l.raza}-${l.cantidadCabezas}-${l.fechaEstimadaFaena}`"
+        :ordenar-por="ordenarPor"
+        :direccion="direccion"
+        :hacia="(l: LoteProximo) => ({ name: 'captaciones-reporte', params: { id: l.captacionId } })"
+        :titulo-movil="(l: LoteProximo) => l.captacionNombre"
+        :subtitulo-movil="(l: LoteProximo) => l.estanciaNombre"
+        @ordenar="alternar"
+      >
+        <template #celda-captacionNombre="{ item }">
+          <span class="font-body-lg text-body-lg font-semibold text-primary max-w-[24ch] truncate block" :title="item.captacionNombre">
+            {{ item.captacionNombre }}
+          </span>
+        </template>
+        <template #celda-categoriaRaza="{ item }">
+          {{ CategoriaGanadoLabels[item.categoria] }}
+          <span class="text-on-surface-variant">· {{ item.raza ?? 'Raza no especificada' }}</span>
+        </template>
+        <template #celda-fechaEstimadaFaena="{ item }">{{ formatearFecha(item.fechaEstimadaFaena) }}</template>
 
-      <!-- Mobile cards -->
-      <div v-if="!cargando && lotesFiltrados.length > 0" class="md:hidden flex flex-col gap-gutter-mobile">
-        <RouterLink
-          v-for="(l, indice) in itemsPagina"
-          :key="`${l.captacionId}-${indice}`"
-          :to="{ name: 'captaciones-reporte', params: { id: l.captacionId } }"
-          class="bg-surface-container-lowest rounded-xl p-margin-mobile shadow-sm border border-surface-variant flex flex-col gap-stack-sm"
-        >
-          <div class="flex justify-between items-start gap-2">
-            <div>
-              <h2 class="font-headline-md text-headline-md text-on-surface">{{ l.captacionNombre }}</h2>
-              <span class="font-body-md text-body-md text-on-surface-variant">{{ l.estanciaNombre }}</span>
-            </div>
-            <span
-              class="inline-flex items-center px-3 py-1 rounded-full font-label-md text-label-md border whitespace-nowrap shrink-0"
-              :class="estilosUrgencia[urgenciaDe(l.diasRestantes)]"
-            >
-              {{ textoUrgencia(l.diasRestantes) }}
-            </span>
-          </div>
+        <template #acciones="{ item }">
+          <span
+            class="inline-flex items-center px-3 py-1 rounded-full font-label-md text-label-md border whitespace-nowrap"
+            :class="estilosUrgencia[urgenciaDe(item.diasRestantes)]"
+          >
+            {{ textoUrgencia(item.diasRestantes) }}
+          </span>
+        </template>
+
+        <template #extra-movil="{ item }">
           <div class="flex items-center gap-1 text-on-surface-variant font-body-md text-body-md">
             <AppIcon name="pets" :size="16" />
-            {{ l.cantidadCabezas }} · {{ CategoriaGanadoLabels[l.categoria] }} · {{ l.raza ?? 'Raza no especificada' }}
+            {{ item.cantidadCabezas }} · {{ CategoriaGanadoLabels[item.categoria] }} · {{ item.raza ?? 'Raza no especificada' }}
           </div>
           <div class="flex items-center gap-1 text-on-surface-variant font-body-md text-body-md">
             <AppIcon name="calendar_month" :size="16" />
-            Faena estimada: {{ formatearFecha(l.fechaEstimadaFaena) }}
+            Faena estimada: {{ formatearFecha(item.fechaEstimadaFaena) }}
           </div>
-        </RouterLink>
-      </div>
+        </template>
+      </DataTable>
 
       <Pagination
         v-if="!cargando && lotesFiltrados.length > 0"

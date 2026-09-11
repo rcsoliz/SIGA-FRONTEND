@@ -101,11 +101,11 @@ const fieldClasses =
         :placeholder="placeholder"
         :step="step"
         :inputmode="type === 'number' ? 'decimal' : undefined"
-        :class="[fieldClasses, suffix ? 'md:pr-12' : '']"
+        :class="[fieldClasses, suffix ? 'pr-10 md:pr-12' : '']"
         @input="onInput"
         @blur="onBlur"
       />
-      <span v-if="suffix" class="hidden md:inline absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-body-md">
+      <span v-if="suffix" class="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-label-md md:font-body-md pointer-events-none">
         {{ suffix }}
       </span>
     </div>
