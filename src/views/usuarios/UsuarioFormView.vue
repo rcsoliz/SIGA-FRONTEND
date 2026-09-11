@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import FormField from '@/components/ui/FormField.vue'
+import RequiredHint from '@/components/ui/RequiredHint.vue'
 import { ApiError } from '@/api/client'
 import { useToast } from '@/composables/useToast'
 import * as usuariosApi from '@/api/usuarios'
@@ -69,6 +70,7 @@ function cancelar() {
         class="flex flex-col gap-gutter-mobile md:gap-stack-lg md:bg-surface-container-lowest md:rounded-xl md:shadow-sm md:border md:border-outline-variant md:p-6"
         @submit.prevent="guardar"
       >
+        <RequiredHint />
         <FormField v-model="form.nombre" label="Nombre completo" required placeholder="Ej. María Quispe" />
         <FormField v-model="form.email" label="Correo electrónico" type="text" required placeholder="usuario@siga.com" />
         <FormField v-model="form.password" label="Contraseña" type="password" required placeholder="Mínimo 8 caracteres" />

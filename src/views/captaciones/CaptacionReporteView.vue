@@ -13,6 +13,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import EstadoCaptacionBadge from '@/components/ui/EstadoCaptacionBadge.vue'
 import EstadoSanitarioBadge from '@/components/ui/EstadoSanitarioBadge.vue'
 import AppIcon, { type NombreIcono } from '@/components/ui/AppIcon.vue'
+import DataTable from '@/components/ui/DataTable.vue'
 import autoTable from 'jspdf-autotable'
 import { useAuthStore } from '@/stores/auth'
 import { useInvitadoStore } from '@/stores/invitado'
@@ -27,7 +28,8 @@ import {
   EstadoSanitarioLabels,
   TipoManejoAlimentarioLabels,
 } from '@/types/enums'
-import type { CaptacionGanadoDto } from '@/types/dto'
+import type { CaptacionGanadoDto, DetalleLoteGanadoDto } from '@/types/dto'
+import type { ColumnaTabla } from '@/types/dataTable'
 
 const route = useRoute()
 const router = useRouter()
@@ -46,6 +48,16 @@ function formatearFecha(iso: string | null): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('es-BO', { year: 'numeric', month: 'short', day: 'numeric' })
 }
+
+const columnasDetalle: ColumnaTabla<DetalleLoteGanadoDto>[] = [
+  { clave: 'categoria', etiqueta: 'Categoría' },
+  { clave: 'raza', etiqueta: 'Raza', ocultarEnTablet: true },
+  { clave: 'cantidadCabezas', etiqueta: 'Cabezas', alinear: 'derecha', numerico: true },
+  { clave: 'pesoPromedioEstimadoKg', etiqueta: 'Peso Prom.', alinear: 'derecha', numerico: true },
+  { clave: 'sistemaAlimentacion', etiqueta: 'Alimentación', ocultarEnTablet: true },
+  { clave: 'fechaEstimadaFaena', etiqueta: 'Est. Faena' },
+  { clave: 'pesoLoteCalculado', etiqueta: 'Peso Lote', alinear: 'derecha', numerico: true },
+]
 
 const bitacoraLinks: { routeName: string; titulo: string; icono: NombreIcono }[] = [
   { routeName: 'bitacora-pesaje', titulo: 'Pesaje', icono: 'scale' },
@@ -257,61 +269,49 @@ const metricas = computed(() => {
         </section>
 
         <!-- Detalle por categoría -->
-        <section class="bg-surface-container-low rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden">
-          <div class="p-4 md:p-6 border-b border-outline-variant/30 bg-surface">
-            <h2 class="font-headline-md text-headline-md text-on-surface">Detalle por Categoría</h2>
-          </div>
+        <section class="flex flex-col gap-stack-md">
+          <h2 class="font-headline-md text-headline-md text-on-surface">Detalle por Categoría</h2>
 
-          <div v-if="captacion.detalles.length === 0" class="p-8 text-center font-body-md text-body-md text-on-surface-variant">
+          <div
+            v-if="captacion.detalles.length === 0"
+            class="p-8 text-center font-body-md text-body-md text-on-surface-variant bg-surface-container-low rounded-xl shadow-sm border border-outline-variant/30"
+          >
             No hay grupos registrados en esta captación.
           </div>
 
-          <div v-else class="hidden md:block overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-              <thead>
-                <tr class="bg-surface-variant/30 text-on-surface-variant font-label-md text-label-md uppercase">
-                  <th class="p-4 font-semibold">Categoría</th>
-                  <th class="p-4 font-semibold">Raza</th>
-                  <th class="p-4 font-semibold text-right">Cabezas</th>
-                  <th class="p-4 font-semibold text-right">Peso Prom.</th>
-                  <th class="p-4 font-semibold">Alimentación</th>
-                  <th class="p-4 font-semibold">Est. Faena</th>
-                  <th class="p-4 font-semibold text-right">Peso Lote</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-outline-variant/20 font-body-md">
-                <tr v-for="d in captacion.detalles" :key="d.id" class="hover:bg-surface-variant/20 transition-colors">
-                  <td class="p-4 font-semibold">{{ CategoriaGanadoLabels[d.categoria] }}</td>
-                  <td class="p-4 text-on-surface-variant">{{ d.raza ?? '—' }}</td>
-                  <td class="p-4 text-right">{{ d.cantidadCabezas }}</td>
-                  <td class="p-4 text-right">{{ d.pesoPromedioEstimadoKg ?? '—' }}</td>
-                  <td class="p-4 text-on-surface-variant">{{ TipoManejoAlimentarioLabels[d.sistemaAlimentacion] }}</td>
-                  <td class="p-4 text-on-surface-variant">{{ formatearFecha(d.fechaEstimadaFaena) }}</td>
-                  <td class="p-4 text-right font-semibold">{{ d.pesoLoteCalculado.toLocaleString('es-BO') }} kg</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            v-else
+            :columnas="columnasDetalle"
+            :items="captacion.detalles"
+            :clave-fila="(d: DetalleLoteGanadoDto) => d.id"
+            :titulo-movil="(d: DetalleLoteGanadoDto) => `${d.cantidadCabezas} ${CategoriaGanadoLabels[d.categoria]}`"
+            :subtitulo-movil="
+              (d: DetalleLoteGanadoDto) =>
+                `${d.raza ?? 'Raza no especificada'}${d.pesoPromedioEstimadoKg ? ` • ${d.pesoPromedioEstimadoKg} kg (Prom)` : ''}`
+            "
+          >
+            <template #celda-categoria="{ item }">
+              <span class="font-semibold">{{ CategoriaGanadoLabels[item.categoria] }}</span>
+            </template>
+            <template #celda-raza="{ item }">{{ item.raza ?? '—' }}</template>
+            <template #celda-pesoPromedioEstimadoKg="{ item }">{{ item.pesoPromedioEstimadoKg ?? '—' }}</template>
+            <template #celda-sistemaAlimentacion="{ item }">{{ TipoManejoAlimentarioLabels[item.sistemaAlimentacion] }}</template>
+            <template #celda-fechaEstimadaFaena="{ item }">{{ formatearFecha(item.fechaEstimadaFaena) }}</template>
+            <template #celda-pesoLoteCalculado="{ item }">
+              <span class="font-semibold">{{ item.pesoLoteCalculado.toLocaleString('es-BO') }} kg</span>
+            </template>
 
-          <div v-if="captacion.detalles.length > 0" class="md:hidden flex flex-col gap-gutter-mobile p-4">
-            <div v-for="d in captacion.detalles" :key="d.id" class="bg-surface-container-lowest rounded-lg border border-outline-variant p-4">
-              <h4 class="font-body-lg text-body-lg font-bold text-on-surface">
-                {{ d.cantidadCabezas }} {{ CategoriaGanadoLabels[d.categoria] }}
-              </h4>
-              <p class="font-label-md text-label-md text-on-surface-variant mt-1">
-                {{ d.raza ?? 'Raza no especificada' }}
-                <template v-if="d.pesoPromedioEstimadoKg"> • {{ d.pesoPromedioEstimadoKg }} kg (Prom)</template>
-              </p>
-              <div class="flex gap-2 mt-2 flex-wrap">
+            <template #extra-movil="{ item }">
+              <div class="flex gap-2 flex-wrap">
                 <span class="font-label-md text-label-md bg-surface-container-high px-2 py-1 rounded text-on-surface-variant">
-                  {{ TipoManejoAlimentarioLabels[d.sistemaAlimentacion] }}
+                  {{ TipoManejoAlimentarioLabels[item.sistemaAlimentacion] }}
                 </span>
                 <span class="font-label-md text-label-md bg-surface-container-high px-2 py-1 rounded text-on-surface-variant">
-                  Faena: {{ formatearFecha(d.fechaEstimadaFaena) }}
+                  Faena: {{ formatearFecha(item.fechaEstimadaFaena) }}
                 </span>
               </div>
-            </div>
-          </div>
+            </template>
+          </DataTable>
         </section>
       </template>
     </div>
