@@ -58,9 +58,12 @@ function etiquetaMes(mes: string | undefined): string {
 // gemela ("Peso Promedio") ya usaba bg-secondary a fuerza completa — misma
 // jerarquía de dato, dos niveles de confianza de color distintos sin razón.
 // Ambas usan ahora su color a fuerza completa (mejora #bolder Dashboard).
-// rgb(var(--color-x)) en vez de una var --chart-* nueva: una sola fuente de
+// var(--color-x) en vez de una var --chart-* nueva: una sola fuente de
 // verdad de color (theme.css), igual que el resto del sistema de tokens.
-const colorCss = computed(() => (props.color === 'secondary' ? 'rgb(var(--color-secondary))' : 'rgb(var(--color-primary))'))
+// Sin el rgb() extra que usaba v3 — en v4 theme.css ya guarda cada
+// --color-x como rgb(...) completo, y volver a envolverlo produce
+// rgb(rgb(...)), un color inválido que Unovis resuelve a negro.
+const colorCss = computed(() => (props.color === 'secondary' ? 'var(--color-secondary)' : 'var(--color-primary)'))
 
 const chartConfig = computed<ChartConfig>(() => ({
   valor: { label: props.titulo, color: colorCss.value },

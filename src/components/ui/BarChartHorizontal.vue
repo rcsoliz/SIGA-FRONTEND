@@ -30,12 +30,17 @@ const yDomain = computed<[number, number]>(() => {
   return n <= 1 ? [-0.5, 0.5] : [0, n - 1]
 })
 
+// Tailwind v4: theme.css ya guarda cada --color-x como rgb(...) completo
+// (necesario para que color-mix() resuelva bg-primary/50 etc.), así que se
+// lee directo con var() — envolverlo en rgb() de nuevo (como en v3, donde
+// la variable era una tripleta cruda) produciría rgb(rgb(...)), un color
+// inválido que los navegadores resuelven a negro en SVG.
 const COLORES = [
-  'rgb(var(--color-primary))',
-  'rgb(var(--color-primary-container))',
-  'rgb(var(--color-secondary))',
-  'rgb(var(--color-tertiary))',
-  'rgb(var(--color-outline))',
+  'var(--color-primary)',
+  'var(--color-primary-container)',
+  'var(--color-secondary)',
+  'var(--color-tertiary)',
+  'var(--color-outline)',
 ]
 function colorDe(posicion: number): string {
   return COLORES[posicion % COLORES.length]
@@ -85,7 +90,7 @@ function plantillaTooltip(d: ItemIndexado): string {
           :grid-line="false"
           :tick-values="itemsIndexados.map((i) => i.idx)"
           :tick-format="etiquetaDe"
-          tick-text-color="rgb(var(--color-on-surface))"
+          tick-text-color="var(--color-on-surface)"
         />
         <ChartTooltip />
         <ChartCrosshair
