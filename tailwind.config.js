@@ -77,9 +77,12 @@ export default {
         input: colorVar('outline-variant'),
         ring: colorVar('primary'),
         foreground: colorVar('on-surface'),
-        card: colorVar('surface-container-low'),
+        // surface-container-lowest, no -low/-high: es la única superficie
+        // "elevada" que usa el resto de la app (cards, diálogos, dropdowns,
+        // el drawer móvil) — confirmado por grep, no hay una rampa graduada.
+        card: colorVar('surface-container-lowest'),
         'card-foreground': colorVar('on-surface'),
-        popover: colorVar('surface-container-high'),
+        popover: colorVar('surface-container-lowest'),
         'popover-foreground': colorVar('on-surface'),
         muted: colorVar('surface-variant'),
         'muted-foreground': colorVar('on-surface-variant'),

@@ -5,6 +5,7 @@ import AlertBanner from '@/components/ui/AlertBanner.vue'
 import KpiCard from '@/components/ui/KpiCard.vue'
 import BarChartHorizontal from '@/components/ui/BarChartHorizontal.vue'
 import MonthlyBarChart from '@/components/ui/MonthlyBarChart.vue'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { ApiError } from '@/api/client'
 import * as dashboardApi from '@/api/dashboard'
 import { CategoriaGanadoLabels } from '@/types/enums'
@@ -42,7 +43,7 @@ const pesoChart = computed(() => datos.value?.serieMensual.map((s) => ({ mes: s.
       <AlertBanner v-if="errorMensaje" variant="error">{{ errorMensaje }}</AlertBanner>
 
       <div v-if="cargando" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div v-for="n in 3" :key="n" class="h-36 rounded-2xl bg-surface-container-lowest border border-outline-variant animate-pulse" />
+        <div v-for="n in 3" :key="n" class="h-36 rounded-xl bg-surface-container-lowest border border-outline-variant animate-pulse" />
       </div>
 
       <template v-else-if="datos">
@@ -59,11 +60,15 @@ const pesoChart = computed(() => datos.value?.serieMensual.map((s) => ({ mes: s.
         </section>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <section class="lg:col-span-1 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-6">
-            <h3 class="font-headline-md text-headline-md text-on-background mb-6">Cabezas por Categoría</h3>
-            <BarChartHorizontal v-if="categoriasChart.length > 0" :items="categoriasChart" />
-            <p v-else class="font-body-md text-body-md text-on-surface-variant">Sin cabezas activas registradas.</p>
-          </section>
+          <Card class="lg:col-span-1">
+            <CardHeader>
+              <CardTitle class="font-headline-md text-headline-md text-on-background">Cabezas por Categoría</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <BarChartHorizontal v-if="categoriasChart.length > 0" :items="categoriasChart" />
+              <p v-else class="font-body-md text-body-md text-on-surface-variant">Sin cabezas activas registradas.</p>
+            </CardContent>
+          </Card>
 
           <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
             <MonthlyBarChart titulo="Consumo Promedio" :puntos="consumoChart" color="primary" unidad=" kg" />

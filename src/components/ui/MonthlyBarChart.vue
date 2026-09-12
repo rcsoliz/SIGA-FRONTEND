@@ -8,6 +8,7 @@
 // no como barra en cero (sección 2.6 de la especificación: "cortar/saltar el
 // punto, no mostrar 0").
 import { computed, ref } from 'vue'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 
 const props = defineProps<{
   titulo: string
@@ -38,9 +39,9 @@ const barColor = computed(() => (props.color === 'secondary' ? 'bg-secondary' : 
 </script>
 
 <template>
-  <div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-6">
-    <div class="flex justify-between items-center mb-6">
-      <h3 class="font-headline-md text-headline-md text-on-background">{{ titulo }}</h3>
+  <Card>
+    <CardHeader class="flex flex-row items-center justify-between">
+      <CardTitle class="font-headline-md text-headline-md text-on-background">{{ titulo }}</CardTitle>
       <div class="flex gap-2">
         <button
           type="button"
@@ -61,24 +62,26 @@ const barColor = computed(() => (props.color === 'secondary' ? 'bg-secondary' : 
           3M
         </button>
       </div>
-    </div>
-    <div class="w-full h-48 bg-surface-container-low rounded-lg border border-outline-variant flex items-end px-4 pt-4 pb-8 gap-3 relative">
-      <div v-for="p in puntosVisibles" :key="p.mes" class="flex-1 h-full flex flex-col items-center justify-end relative group">
-        <template v-if="p.valor !== null">
-          <div
-            class="w-full max-w-[28px] rounded-t-sm transition-all duration-500"
-            :class="barColor"
-            :style="{ height: `${(p.valor / max) * 100}%` }"
-          />
-          <div
-            class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface font-label-md text-label-md px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10"
-          >
-            {{ p.valor.toLocaleString('es-BO') }}{{ unidad ?? '' }}
-          </div>
-        </template>
-        <div v-else class="w-full max-w-[28px] h-[2px] bg-outline-variant/60 rounded-full mb-0" title="Sin datos este mes" />
-        <span class="font-label-md text-label-md text-outline absolute -bottom-6">{{ etiquetaMes(p.mes) }}</span>
+    </CardHeader>
+    <CardContent>
+      <div class="w-full h-48 bg-surface-container-low rounded-lg border border-outline-variant flex items-end px-4 pt-4 pb-8 gap-3 relative">
+        <div v-for="p in puntosVisibles" :key="p.mes" class="flex-1 h-full flex flex-col items-center justify-end relative group">
+          <template v-if="p.valor !== null">
+            <div
+              class="w-full max-w-[28px] rounded-t-sm transition-all duration-500"
+              :class="barColor"
+              :style="{ height: `${(p.valor / max) * 100}%` }"
+            />
+            <div
+              class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface font-label-md text-label-md px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10"
+            >
+              {{ p.valor.toLocaleString('es-BO') }}{{ unidad ?? '' }}
+            </div>
+          </template>
+          <div v-else class="w-full max-w-[28px] h-[2px] bg-outline-variant/60 rounded-full mb-0" title="Sin datos este mes" />
+          <span class="font-label-md text-label-md text-outline absolute -bottom-6">{{ etiquetaMes(p.mes) }}</span>
+        </div>
       </div>
-    </div>
-  </div>
+    </CardContent>
+  </Card>
 </template>
