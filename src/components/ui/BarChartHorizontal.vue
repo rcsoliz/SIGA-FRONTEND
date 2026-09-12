@@ -22,6 +22,13 @@ const itemsIndexados = computed<ItemIndexado[]>(() =>
   props.items.map((i, pos) => ({ ...i, pos, idx: props.items.length - 1 - pos })),
 )
 const max = computed(() => Math.max(1, ...props.items.map((i) => i.value)))
+// Con 1 sola categoría (o ninguna) [0, length - 1] degenera a [0, 0] o
+// [0, -1], que Unovis no puede escalar — se centra el dominio en torno al
+// único punto en vez de anclarlo en 0, para no dejarlo pegado a un borde.
+const yDomain = computed<[number, number]>(() => {
+  const n = itemsIndexados.value.length
+  return n <= 1 ? [-0.5, 0.5] : [0, n - 1]
+})
 
 const COLORES = [
   'rgb(var(--color-primary))',
@@ -62,7 +69,7 @@ function plantillaTooltip(d: ItemIndexado): string {
 <template>
   <div class="w-full" :style="{ height: `${altoChart}px` }">
     <ChartContainer :config="chartConfig" class="h-full w-full">
-      <VisXYContainer :data="itemsIndexados" :x-domain="[0, max]" :y-domain="[0, itemsIndexados.length - 1]">
+      <VisXYContainer :data="itemsIndexados" :x-domain="[0, max]" :y-domain="yDomain">
         <VisGroupedBar
           orientation="horizontal"
           :x="(d: ItemIndexado) => d.idx"

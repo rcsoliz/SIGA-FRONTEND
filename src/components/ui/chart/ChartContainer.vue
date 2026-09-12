@@ -25,10 +25,15 @@ defineSlots<{
 
 const { config } = toRefs(props)
 const uniqueId = useId()
-const chartId = computed(() => `chart-${props.id || uniqueId.replace(/:/g, '')}`)
+// Sufijo compartido por chartId (el `data-chart` del DOM) y por el contexto
+// que consumen los hijos (p. ej. ChartLegendContent, que arma su propio
+// selector como `chart-${id}`) — antes el contexto exponía el uniqueId
+// crudo, ignorando un `id` explícito pasado por props.
+const idSuffix = computed(() => props.id || uniqueId.replace(/:/g, ''))
+const chartId = computed(() => `chart-${idSuffix.value}`)
 
 provideChartContext({
-  id: uniqueId,
+  id: idSuffix.value,
   config,
 })
 </script>
@@ -53,7 +58,7 @@ provideChartContext({
       '--vis-font-family': 'var(--font-sans)',
     }"
   >
-    <slot :id="uniqueId" :config="config" />
+    <slot :id="idSuffix" :config="config" />
     <ChartStyle :id="chartId" />
   </div>
 </template>

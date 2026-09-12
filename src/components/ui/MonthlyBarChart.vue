@@ -31,6 +31,20 @@ const puntosVisibles = computed<PuntoIndexado[]>(() =>
   props.puntos.slice(-(rango.value === '1M' ? 1 : 3)).map((p, idx) => ({ ...p, idx })),
 )
 const barras = computed(() => puntosVisibles.value.filter((p): p is PuntoIndexado & { valor: number } => p.valor !== null))
+// Meses sin dato (valor: null): ver comentario de arriba — no dibujan barra,
+// pero conservan su título en el eje X. Sin este set no queda ningún rastro
+// de que ese mes existe y no es un glitch del gráfico.
+const mesesSinDato = computed(() => new Set(puntosVisibles.value.filter((p) => p.valor === null).map((p) => p.idx)))
+
+// Con 1 solo punto visible (rango "1M") [0, length - 1] degenera a [0, 0],
+// que ya no colapsa el eje (a diferencia de BarChartHorizontal, acá el punto
+// SÍ tiene ancho > 0 así que Unovis no truena) pero deja la barra pegada al
+// borde izquierdo en vez de centrada — se centra el dominio en el único
+// punto en ese caso.
+const xDomain = computed<[number, number]>(() => {
+  const n = puntosVisibles.value.length
+  return n <= 1 ? [-0.5, 0.5] : [0, n - 1]
+})
 
 function etiquetaMes(mes: string | undefined): string {
   if (!mes) return ''
@@ -55,6 +69,20 @@ const chartConfig = computed<ChartConfig>(() => ({
 function formatearValor(valor: number): string {
   return `${valor.toLocaleString('es-BO')}${props.unidad ?? ''}`
 }
+
+// componentToString() llama a useId() internamente y arma una key de caché a
+// partir de ese id — si se invoca directo en el :template (cada render, p.
+// ej. al tocar 1M/3M) genera un id nuevo cada vez y el Map de caché del
+// módulo (chart/utils.ts) crece sin límite porque ninguna entrada vieja
+// vuelve a pedirse. Envuelto en computed(), solo se re-evalúa cuando
+// chartConfig cambia de verdad (prácticamente nunca tras el montaje), así
+// que el id — y la caché — quedan estables para la vida del componente.
+const plantillaTooltip = computed(() => componentToString(chartConfig.value, ChartTooltipContent, {
+  labelFormatter: (x: number | Date) => etiquetaMes(puntosVisibles.value[x as number]?.mes),
+  nameKey: 'valor',
+  indicator: 'line',
+  valueFormatter: formatearValor,
+}))
 </script>
 
 <template>
@@ -83,11 +111,11 @@ function formatearValor(valor: number): string {
       </div>
     </CardHeader>
     <CardContent>
-      <div class="w-full h-48 bg-surface-container-low rounded-lg border border-outline-variant pt-4 pb-2 px-2">
+      <div class="relative w-full h-48 bg-surface-container-low rounded-lg border border-outline-variant pt-4 pb-2 px-2">
         <ChartContainer :config="chartConfig" class="h-full w-full">
           <VisXYContainer
             :data="barras"
-            :x-domain="[0, Math.max(1, puntosVisibles.length - 1)]"
+            :x-domain="xDomain"
           >
             <VisGroupedBar
               :x="(d: PuntoIndexado) => d.idx"
@@ -109,16 +137,22 @@ function formatearValor(valor: number): string {
             <ChartCrosshair
               :x="(d: PuntoIndexado) => d.idx"
               :y="(d: PuntoIndexado) => d.valor"
-              :template="componentToString(chartConfig, ChartTooltipContent, {
-                labelFormatter: (x: number | Date) => etiquetaMes(puntosVisibles[x as number]?.mes),
-                nameKey: 'valor',
-                indicator: 'line',
-                valueFormatter: formatearValor,
-              })"
+              :template="plantillaTooltip"
               :color="[colorCss]"
             />
           </VisXYContainer>
         </ChartContainer>
+        <!-- Meses sin dato: no dibujan barra (ver comentario en el script),
+             pero dejan una marca en el eje para no verse como un glitch. -->
+        <div class="pointer-events-none absolute inset-x-2 bottom-2 grid" :style="{ gridTemplateColumns: `repeat(${puntosVisibles.length}, 1fr)` }">
+          <div v-for="p in puntosVisibles" :key="p.idx" class="flex justify-center">
+            <div
+              v-if="mesesSinDato.has(p.idx)"
+              class="pointer-events-auto w-6 h-[2px] bg-outline-variant/60 rounded-full"
+              title="Sin datos este mes"
+            />
+          </div>
+        </div>
       </div>
     </CardContent>
   </Card>
