@@ -70,6 +70,25 @@ export default {
         'outline-variant': colorVar('outline-variant'),
         'inverse-surface': colorVar('inverse-surface'),
         'inverse-on-surface': colorVar('inverse-on-surface'),
+
+        // Alias semánticos para componentes shadcn-vue — reutilizan los
+        // mismos tokens M3 de arriba, sin variables CSS nuevas.
+        border: colorVar('outline-variant'),
+        input: colorVar('outline-variant'),
+        ring: colorVar('primary'),
+        foreground: colorVar('on-surface'),
+        card: colorVar('surface-container-low'),
+        'card-foreground': colorVar('on-surface'),
+        popover: colorVar('surface-container-high'),
+        'popover-foreground': colorVar('on-surface'),
+        muted: colorVar('surface-variant'),
+        'muted-foreground': colorVar('on-surface-variant'),
+        accent: colorVar('tertiary-container'),
+        'accent-foreground': colorVar('on-tertiary-container'),
+        destructive: colorVar('error'),
+        'destructive-foreground': colorVar('on-error'),
+        'primary-foreground': colorVar('on-primary'),
+        'secondary-foreground': colorVar('on-secondary-container'),
       },
       borderRadius: {
         DEFAULT: '0.25rem',
@@ -117,5 +136,9 @@ export default {
       },
     },
   },
-  plugins: [require('@tailwindcss/forms'), require('@tailwindcss/container-queries')],
+  plugins: [
+    require('@tailwindcss/forms'),
+    require('@tailwindcss/container-queries'),
+    require('tailwindcss-animate'),
+  ],
 }

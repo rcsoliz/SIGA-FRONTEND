@@ -17,6 +17,7 @@ import { useInvitadoStore } from '@/stores/invitado'
 import { sincronizarCola } from '@/services/sincronizacion'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import AppIcon, { type NombreIcono } from '@/components/ui/AppIcon.vue'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import type { RolUsuario } from '@/types/enums'
 
 interface NavItem {
@@ -75,7 +76,6 @@ const drawerAbierto = ref(false)
 
 // --- Barra superior de escritorio (referencia: mockup "Maestro de Registros
 // - Optimizado" en Stitch) ---
-const notificacionesAbiertas = ref(false)
 const nombreMostrado = computed(() => (invitado.activo ? 'Invitado' : auth.nombre))
 const rolMostrado = computed(() => (invitado.activo ? 'Modo local' : auth.rol))
 const inicialUsuario = computed(() => (invitado.activo ? 'I' : (auth.nombre?.trim().charAt(0) ?? '?').toUpperCase()))
@@ -244,7 +244,7 @@ async function irA(routeName: string) {
       <header
         class="hidden md:flex items-center justify-between h-16 px-6 bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-30"
       >
-        <p class="font-headline-md text-headline-md text-on-surface">{{ tituloSeccion }}</p>
+        <p class="font-headline-lg text-headline-lg text-on-surface">{{ tituloSeccion }}</p>
         <div class="flex items-center gap-2">
           <div
             class="flex items-center gap-2 px-4 py-1.5 rounded-full"
@@ -275,27 +275,22 @@ async function irA(routeName: string) {
           >
             <AppIcon name="sync" :size="20" />
           </button>
-          <div class="relative">
-            <button
-              type="button"
-              title="Notificaciones"
-              aria-label="Notificaciones"
-              class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors"
-              @click="notificacionesAbiertas = !notificacionesAbiertas"
-            >
-              <AppIcon name="notifications" :size="20" />
-            </button>
-            <div v-if="notificacionesAbiertas" class="fixed inset-0 z-30" @click="notificacionesAbiertas = false" />
-            <Transition name="fade">
-              <div
-                v-if="notificacionesAbiertas"
-                class="absolute right-0 top-12 w-72 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg z-40 p-4"
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <button
+                type="button"
+                title="Notificaciones"
+                aria-label="Notificaciones"
+                class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors"
               >
-                <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-2">Notificaciones</p>
-                <p class="font-body-md text-body-md text-on-surface-variant text-center py-4">No hay notificaciones nuevas.</p>
-              </div>
-            </Transition>
-          </div>
+                <AppIcon name="notifications" :size="20" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" :side-offset="8" class="w-72 p-4">
+              <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-2">Notificaciones</p>
+              <p class="font-body-md text-body-md text-on-surface-variant text-center py-4">No hay notificaciones nuevas.</p>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <div class="h-8 w-px bg-outline-variant" />
           <div class="flex items-center gap-2">
             <div
@@ -330,7 +325,7 @@ async function irA(routeName: string) {
         :class="route.name === item.routeName ? 'bg-primary-container text-on-primary-container' : 'text-on-surface-variant'"
       >
         <AppIcon :name="item.icon" :size="22" class="mb-1" />
-        <span class="font-label-md text-label-md">{{ item.label }}</span>
+        <span class="font-label-md text-label-md text-center leading-4 line-clamp-2 min-h-[2rem]">{{ item.label }}</span>
       </RouterLink>
       <button
         v-if="itemsSecundarios.length > 0"
@@ -341,7 +336,7 @@ async function irA(routeName: string) {
         @click="drawerAbierto = true"
       >
         <AppIcon name="more_horiz" :size="22" class="mb-1" />
-        <span class="font-label-md text-label-md">Más</span>
+        <span class="font-label-md text-label-md text-center leading-4 min-h-[2rem]">Más</span>
       </button>
     </nav>
 
