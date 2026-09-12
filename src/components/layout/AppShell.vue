@@ -152,47 +152,47 @@ async function irA(routeName: string) {
   <div class="min-h-screen bg-background flex">
     <!-- Sidebar (>=768px) -->
     <aside
-      class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 bg-surface-container-lowest border-r border-outline-variant shadow-sm z-40 py-stack-lg px-4"
+      class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 bg-surface-dim border-r border-outline-variant z-40 py-stack-lg px-4"
     >
       <div class="flex items-center gap-3 mb-8 px-2">
-        <div class="w-12 h-12 rounded-lg bg-primary-container flex items-center justify-center text-on-primary-container">
-          <AppIcon name="agriculture" :size="26" />
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary to-primary-container shadow-lg shadow-primary/30 ring-1 ring-primary/30 flex items-center justify-center text-on-primary-container">
+          <AppIcon name="agriculture" :size="24" />
         </div>
         <div>
           <h1 class="font-headline-md text-headline-md text-primary font-bold">SIGA</h1>
-          <p class="font-label-md text-label-md text-on-surface-variant">Captación de Ganado</p>
+          <p class="font-label-md text-label-md text-primary/90 uppercase">Captación de Ganado</p>
         </div>
       </div>
 
-      <nav class="flex-1 space-y-2">
+      <nav class="flex-1 space-y-1">
         <RouterLink
           v-for="item in navItems"
           :key="item.routeName"
           :to="{ name: item.routeName }"
           :title="item.label"
-          class="flex items-center gap-3 px-4 h-[48px] rounded-lg font-label-md text-label-md transition-colors"
+          class="flex items-center gap-3 px-4 h-[48px] rounded-xl font-body-md text-body-md transition-all duration-150"
           :class="
             route.name === item.routeName
-              ? 'bg-primary-container text-on-primary-container font-bold'
-              : 'text-on-surface-variant hover:bg-surface-variant'
+              ? 'bg-primary-container text-on-primary-container font-semibold shadow-md shadow-primary/30 border border-primary/40'
+              : 'text-on-surface-variant hover:bg-surface-variant border border-transparent'
           "
         >
-          <AppIcon :name="item.icon" :size="20" />
+          <span :class="route.name === item.routeName ? '' : 'text-outline'"><AppIcon :name="item.icon" :size="20" /></span>
           {{ item.label }}
         </RouterLink>
       </nav>
 
-      <div class="pt-4 border-t border-outline-variant">
+      <div class="-mx-4 -mb-stack-lg px-4 pb-stack-lg pt-4 border-t border-outline-variant bg-background/80">
         <div class="px-4 py-2 flex items-center justify-between">
           <div class="min-w-0">
             <p class="font-body-md text-body-md text-on-surface font-semibold truncate">{{ nombreMostrado }}</p>
-            <p class="font-label-md text-label-md text-on-surface-variant">{{ rolMostrado }}</p>
+            <p class="font-label-md text-label-md text-on-surface-variant tracking-normal">{{ rolMostrado }}</p>
           </div>
           <ThemeToggle />
         </div>
         <button
           title="Cerrar sesión"
-          class="w-full flex items-center gap-3 px-4 h-[48px] text-on-surface-variant hover:bg-surface-variant transition-colors rounded-lg font-label-md text-label-md"
+          class="w-full flex items-center gap-3 px-4 h-[48px] text-on-surface-variant hover:bg-error/10 hover:text-error transition-colors rounded-lg font-body-md text-body-md"
           @click="salir"
         >
           <AppIcon name="logout" :size="20" />

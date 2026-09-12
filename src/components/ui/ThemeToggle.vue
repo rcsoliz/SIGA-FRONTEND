@@ -10,7 +10,7 @@ const { tema, alternar } = useTheme()
     type="button"
     :aria-label="tema === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
     :title="tema === 'dark' ? 'Modo claro' : 'Modo oscuro'"
-    class="h-10 w-10 flex items-center justify-center text-on-surface-variant hover:bg-surface-variant rounded-full transition-colors"
+    class="h-9 w-9 flex items-center justify-center text-secondary bg-secondary/10 border border-secondary/20 hover:bg-secondary/20 rounded-lg transition-colors"
     @click="alternar"
   >
     <AppIcon :name="tema === 'dark' ? 'light_mode' : 'dark_mode'" :size="20" />
