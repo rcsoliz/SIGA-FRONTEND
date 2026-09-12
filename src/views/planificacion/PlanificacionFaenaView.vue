@@ -17,8 +17,9 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import Pagination from '@/components/ui/Pagination.vue'
-import AppIcon from '@/components/ui/AppIcon.vue'
+import AppIcon, { type NombreIcono } from '@/components/ui/AppIcon.vue'
 import DataTable from '@/components/ui/DataTable.vue'
+import { Badge, type BadgeVariants } from '@/components/ui/badge'
 import { usePaginacion } from '@/composables/usePaginacion'
 import { useOrdenable } from '@/composables/useOrdenable'
 import { ApiError } from '@/api/client'
@@ -132,10 +133,19 @@ function urgenciaDe(dias: number): Urgencia {
   return 'normal'
 }
 
-const estilosUrgencia: Record<Urgencia, string> = {
-  vencido: 'bg-error-container text-on-error-container border-error/20',
-  proximo: 'bg-secondary-container/50 text-secondary border-secondary/20',
-  normal: 'bg-primary/10 text-primary border-primary/20',
+const variantesUrgencia: Record<Urgencia, NonNullable<BadgeVariants['variant']>> = {
+  vencido: 'destructive',
+  proximo: 'secondary',
+  normal: 'primary',
+}
+
+// Ícono redundante por urgencia — mismo criterio que ya aplican SyncBadge,
+// EstadoCaptacionBadge, EstadoSanitarioBadge y EstadoUsuarioBadge: el estado
+// no debe distinguirse solo por color.
+const iconosUrgencia: Record<Urgencia, NombreIcono> = {
+  vencido: 'warning',
+  proximo: 'calendar_month',
+  normal: 'check_circle',
 }
 
 function textoUrgencia(dias: number): string {
@@ -253,12 +263,10 @@ function exportarPdf() {
         <template #celda-fechaEstimadaFaena="{ item }">{{ formatearFecha(item.fechaEstimadaFaena) }}</template>
 
         <template #acciones="{ item }">
-          <span
-            class="inline-flex items-center px-3 py-1 rounded-full font-label-md text-label-md border whitespace-nowrap"
-            :class="estilosUrgencia[urgenciaDe(item.diasRestantes)]"
-          >
+          <Badge :variant="variantesUrgencia[urgenciaDe(item.diasRestantes)]">
+            <AppIcon :name="iconosUrgencia[urgenciaDe(item.diasRestantes)]" :size="14" />
             {{ textoUrgencia(item.diasRestantes) }}
-          </span>
+          </Badge>
         </template>
 
         <template #extra-movil="{ item }">
