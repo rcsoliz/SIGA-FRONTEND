@@ -26,3 +26,14 @@ export const badgeVariants = cva(
   },
 )
 export type BadgeVariants = VariantProps<typeof badgeVariants>
+
+// Color del punto de estado (EstadoUsuarioBadge, SyncBadge, ...) para cada
+// variant — una sola fuente de verdad, en vez de que cada badge re-declare
+// su propio mapeo estado -> color en paralelo a `variantes`.
+export const badgeVariantDotColor: Record<NonNullable<BadgeVariants['variant']>, string> = {
+  primary: 'bg-primary',
+  secondary: 'bg-secondary',
+  tertiary: 'bg-tertiary',
+  destructive: 'bg-error',
+  neutral: 'bg-outline',
+}

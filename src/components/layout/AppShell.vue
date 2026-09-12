@@ -17,6 +17,7 @@ import { useInvitadoStore } from '@/stores/invitado'
 import { sincronizarCola } from '@/services/sincronizacion'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import AppIcon, { type NombreIcono } from '@/components/ui/AppIcon.vue'
+import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import type { RolUsuario } from '@/types/enums'
 
@@ -266,25 +267,29 @@ async function irA(routeName: string) {
               {{ invitado.activo ? `Invitado · ${invitado.pendientes} pend.` : `${invitado.pendientes} sin sincronizar` }}
             </span>
           </button>
-          <button
-            type="button"
+          <!-- size-10 (40px): coherente con el resto de los botones-icono
+          circulares de esta barra — size="icon" del primitivo mide 36px. -->
+          <Button
+            variant="ghost"
+            size="icon"
+            class="size-10 rounded-full text-on-surface-variant"
             title="Actualizar datos"
             aria-label="Actualizar datos"
-            class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors"
             @click="actualizarDatos"
           >
             <AppIcon name="sync" :size="20" />
-          </button>
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="icon"
+                class="size-10 rounded-full text-on-surface-variant"
                 title="Notificaciones"
                 aria-label="Notificaciones"
-                class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors"
               >
                 <AppIcon name="notifications" :size="20" />
-              </button>
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" :side-offset="8" class="w-72 p-4">
               <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-2">Notificaciones</p>
