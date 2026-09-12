@@ -13,6 +13,11 @@
   --radius-xl: 0.75rem;
   --radius-full: 9999px;
 
+  /* Sombra de elevación real para las tarjetas KPI/gráfico — Stitch SIGA V2
+   * ("shadow-card"), distinta de shadow-sm (la que ya usa el resto de
+   * tarjetas planas del sistema, ver DESIGN.md "Flat-By-Default Rule"). */
+  --shadow-card: 0 8px 24px -4px rgb(0 0 0 / 0.45);
+
   --spacing-base: 4px;
   --spacing-stack-sm: 8px;
   --spacing-stack-md: 16px;
@@ -30,10 +35,14 @@
   --font-button: IBM Plex Sans, sans-serif;
   --font-button-sm: IBM Plex Sans, sans-serif;
 
-  --text-headline-xl: 32px;
+  /* 36px/800 (antes 32px/700) — Stitch SIGA V2 usa text-4xl font-extrabold
+   * para los números KPI. headline-xl es exclusivo de KpiCard.vue (ver
+   * DESIGN.md: "never used for page titles or section headings"), así que
+   * ajustar su tamaño acá no afecta ningún otro texto del sistema. */
+  --text-headline-xl: 36px;
   --text-headline-xl--line-height: 40px;
   --text-headline-xl--letter-spacing: -0.02em;
-  --text-headline-xl--font-weight: 700;
+  --text-headline-xl--font-weight: 800;
   --text-headline-lg: 24px;
   --text-headline-lg--line-height: 32px;
   --text-headline-lg--letter-spacing: -0.02em;

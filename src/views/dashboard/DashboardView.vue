@@ -71,7 +71,7 @@ const pesoChart = computed(() => datos.value?.serieMensual.map((s) => ({ mes: s.
           </Card>
 
           <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <MonthlyBarChart titulo="Consumo Promedio" :puntos="consumoChart" color="primary" unidad=" kg" />
+            <MonthlyBarChart titulo="Consumo Promedio" :puntos="consumoChart" color="primary" unidad=" kg" variante="area" />
             <MonthlyBarChart titulo="Peso Promedio" :puntos="pesoChart" color="secondary" unidad=" kg" />
           </div>
         </div>
