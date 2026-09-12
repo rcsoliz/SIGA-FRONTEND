@@ -134,7 +134,7 @@ const plantillaTooltip = computed(() => componentToString(chartConfig.value, Cha
               :grid-line="false"
               :tick-values="puntosVisibles.map((p) => p.idx)"
               :tick-format="(i: number) => etiquetaMes(puntosVisibles[i]?.mes)"
-              tick-text-color="rgb(var(--color-outline))"
+              tick-text-color="var(--color-outline)"
             />
             <ChartTooltip />
             <ChartCrosshair

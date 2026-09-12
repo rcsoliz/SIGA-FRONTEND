@@ -1,8 +1,8 @@
-/* Tokens de color como variables CSS. Desde la migración a Tailwind v4 cada
- * valor es un rgb() válido (v4 resuelve la opacidad de bg-x/50 etc. con
- * color-mix(), que necesita un <color> real, no una tripleta cruda) — el
- * bloque `@theme inline` de main.css mapea cada uno de estos nombres al
- * namespace de color de Tailwind.
+/* Tokens de color como variables CSS. Cada --color-x guarda un color rgb(...)
+ * completo (no una tripleta cruda) — Tailwind v4 los consume directo vía
+ * var(--color-x) y resuelve modificadores de opacidad (bg-primary/10, etc.)
+ * con color-mix() sobre ese valor, así que tiene que ser un color CSS válido
+ * por sí solo.
  *
  * :root  = esquema CLARO — extraído 1:1 de los mockups de Stitch / design
  *          system formal "AgroField Precision" (ver tailwind.config.js
