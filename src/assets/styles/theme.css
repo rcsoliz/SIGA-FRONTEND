@@ -75,6 +75,11 @@
   --color-inverse-surface: 46 49 50;
   --color-inverse-on-surface: 240 241 242;
 
+  /* Los componentes de Unovis (gráficas) leen tipografía de esta variable,
+   * no de la config de Tailwind — sin esto el texto de ejes/tooltips caería
+   * al sans-serif del navegador en vez de IBM Plex Sans. */
+  --font-sans: 'IBM Plex Sans', sans-serif;
+
   color-scheme: light;
 }
 

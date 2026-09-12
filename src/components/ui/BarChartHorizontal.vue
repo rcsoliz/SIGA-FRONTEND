@@ -5,31 +5,89 @@
 // Final" en Stitch. Se cicla por posición (no por nombre de categoría) para
 // que el componente siga siendo genérico y no dependa de CategoriaGanado.
 import { computed } from 'vue'
+import { VisAxis, VisGroupedBar, VisXYContainer } from '@unovis/vue'
+import { ChartContainer, ChartCrosshair, ChartTooltip, type ChartConfig } from '@/components/ui/chart'
 
 const props = defineProps<{ items: { label: string; value: number }[] }>()
 
+// `pos` = posición original en `items` (0 = primero) — de ahí sale el color,
+// así el ciclo de colores no cambia aunque se reordene la fila visualmente.
+// `idx` = posición en el eje Y de Unovis, que crece hacia abajo — se invierte
+// para que el primer item quede arriba (orden de lectura natural). Invertir
+// el `y-domain` en vez del índice rompe el filtro interno de datos visibles
+// de Unovis, que espera un dominio [min, max] ascendente.
+interface ItemIndexado { label: string; value: number; pos: number; idx: number }
+
+const itemsIndexados = computed<ItemIndexado[]>(() =>
+  props.items.map((i, pos) => ({ ...i, pos, idx: props.items.length - 1 - pos })),
+)
 const max = computed(() => Math.max(1, ...props.items.map((i) => i.value)))
 
-const COLORES = ['bg-primary', 'bg-primary-container', 'bg-secondary', 'bg-tertiary', 'bg-outline']
-function colorDe(indice: number): string {
-  return COLORES[indice % COLORES.length]
+const COLORES = [
+  'rgb(var(--color-primary))',
+  'rgb(var(--color-primary-container))',
+  'rgb(var(--color-secondary))',
+  'rgb(var(--color-tertiary))',
+  'rgb(var(--color-outline))',
+]
+function colorDe(posicion: number): string {
+  return COLORES[posicion % COLORES.length]
+}
+
+function etiquetaDe(idx: number): string {
+  return itemsIndexados.value.find((i) => i.idx === idx)?.label ?? ''
+}
+
+const chartConfig = computed<ChartConfig>(() =>
+  Object.fromEntries(itemsIndexados.value.map((i) => [i.label, { label: i.label, color: colorDe(i.pos) }])),
+)
+
+const altoChart = computed(() => Math.max(160, props.items.length * 40))
+
+// Tooltip a mano en vez de ChartTooltipContent: ese componente empareja el
+// payload por nombre de serie (ideal para series múltiples tipo
+// desktop/mobile), pero acá hay una sola serie con un color distinto por
+// categoría — no encaja en ese modelo, así que se arma el HTML directamente.
+function plantillaTooltip(d: ItemIndexado): string {
+  return `
+    <div class="border-outline-variant bg-popover text-popover-foreground flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs shadow-lg">
+      <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background:${colorDe(d.pos)}"></span>
+      <span class="text-on-surface-variant">${d.label}</span>
+      <span class="ml-auto font-mono font-medium text-on-surface">${d.value.toLocaleString('es-BO')}</span>
+    </div>
+  `
 }
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
-    <div v-for="(item, indice) in items" :key="item.label" class="flex flex-col gap-1.5">
-      <div class="flex justify-between items-end">
-        <span class="font-body-md text-body-md text-on-surface">{{ item.label }}</span>
-        <span class="font-label-md text-label-md text-on-surface-variant">{{ item.value.toLocaleString('es-BO') }}</span>
-      </div>
-      <div class="w-full bg-surface-container-highest rounded-full h-3" :title="`${item.label}: ${item.value}`">
-        <div
-          class="h-3 rounded-full transition-all duration-500"
-          :class="colorDe(indice)"
-          :style="{ width: `${(item.value / max) * 100}%` }"
+  <div class="w-full" :style="{ height: `${altoChart}px` }">
+    <ChartContainer :config="chartConfig" class="h-full w-full">
+      <VisXYContainer :data="itemsIndexados" :x-domain="[0, max]" :y-domain="[0, itemsIndexados.length - 1]">
+        <VisGroupedBar
+          orientation="horizontal"
+          :x="(d: ItemIndexado) => d.idx"
+          :y="(d: ItemIndexado) => d.value"
+          :color="(d: ItemIndexado) => colorDe(d.pos)"
+          :rounded-corners="6"
+          group-padding="0.4"
         />
-      </div>
-    </div>
+        <VisAxis
+          type="y"
+          :tick-line="false"
+          :domain-line="false"
+          :grid-line="false"
+          :tick-values="itemsIndexados.map((i) => i.idx)"
+          :tick-format="etiquetaDe"
+          tick-text-color="rgb(var(--color-on-surface))"
+        />
+        <ChartTooltip />
+        <ChartCrosshair
+          :x="(d: ItemIndexado) => d.idx"
+          :y="(d: ItemIndexado) => d.value"
+          :template="plantillaTooltip"
+          :color="itemsIndexados.map((i) => colorDe(i.pos))"
+        />
+      </VisXYContainer>
+    </ChartContainer>
   </div>
 </template>
