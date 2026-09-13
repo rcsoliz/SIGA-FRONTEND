@@ -17,6 +17,7 @@ import { useInvitadoStore } from '@/stores/invitado'
 import { sincronizarCola } from '@/services/sincronizacion'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import AppIcon, { type NombreIcono } from '@/components/ui/AppIcon.vue'
+import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import type { RolUsuario } from '@/types/enums'
 
@@ -151,47 +152,47 @@ async function irA(routeName: string) {
   <div class="min-h-screen bg-background flex">
     <!-- Sidebar (>=768px) -->
     <aside
-      class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 bg-surface-container-lowest border-r border-outline-variant shadow-sm z-40 py-stack-lg px-4"
+      class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 bg-surface-dim border-r border-outline-variant z-40 py-stack-lg px-4"
     >
       <div class="flex items-center gap-3 mb-8 px-2">
-        <div class="w-12 h-12 rounded-lg bg-primary-container flex items-center justify-center text-on-primary-container">
-          <AppIcon name="agriculture" :size="26" />
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary to-primary-container shadow-lg shadow-primary/30 ring-1 ring-primary/30 flex items-center justify-center text-on-primary-container">
+          <AppIcon name="agriculture" :size="24" />
         </div>
         <div>
           <h1 class="font-headline-md text-headline-md text-primary font-bold">SIGA</h1>
-          <p class="font-label-md text-label-md text-on-surface-variant">Captación de Ganado</p>
+          <p class="font-label-md text-label-md text-primary/90 uppercase">Captación de Ganado</p>
         </div>
       </div>
 
-      <nav class="flex-1 space-y-2">
+      <nav class="flex-1 space-y-1">
         <RouterLink
           v-for="item in navItems"
           :key="item.routeName"
           :to="{ name: item.routeName }"
           :title="item.label"
-          class="flex items-center gap-3 px-4 h-[48px] rounded-lg font-label-md text-label-md transition-colors"
+          class="flex items-center gap-3 px-4 h-[48px] rounded-xl font-body-md text-body-md transition-all duration-150"
           :class="
             route.name === item.routeName
-              ? 'bg-primary-container text-on-primary-container font-bold'
-              : 'text-on-surface-variant hover:bg-surface-variant'
+              ? 'bg-primary-container text-on-primary-container font-semibold shadow-md shadow-primary/30 border border-primary/40'
+              : 'text-on-surface-variant hover:bg-surface-variant border border-transparent'
           "
         >
-          <AppIcon :name="item.icon" :size="20" />
+          <span :class="route.name === item.routeName ? '' : 'text-outline'"><AppIcon :name="item.icon" :size="20" /></span>
           {{ item.label }}
         </RouterLink>
       </nav>
 
-      <div class="pt-4 border-t border-outline-variant">
+      <div class="-mx-4 -mb-stack-lg px-4 pb-stack-lg pt-4 border-t border-outline-variant bg-background/80">
         <div class="px-4 py-2 flex items-center justify-between">
           <div class="min-w-0">
             <p class="font-body-md text-body-md text-on-surface font-semibold truncate">{{ nombreMostrado }}</p>
-            <p class="font-label-md text-label-md text-on-surface-variant">{{ rolMostrado }}</p>
+            <p class="font-label-md text-label-md text-on-surface-variant tracking-normal">{{ rolMostrado }}</p>
           </div>
           <ThemeToggle />
         </div>
         <button
           title="Cerrar sesión"
-          class="w-full flex items-center gap-3 px-4 h-[48px] text-on-surface-variant hover:bg-surface-variant transition-colors rounded-lg font-label-md text-label-md"
+          class="w-full flex items-center gap-3 px-4 h-[48px] text-on-surface-variant hover:bg-error/10 hover:text-error transition-colors rounded-lg font-body-md text-body-md"
           @click="salir"
         >
           <AppIcon name="logout" :size="20" />
@@ -242,22 +243,25 @@ async function irA(routeName: string) {
       escritorio (sincronizar/notificaciones/perfil) — el móvil conserva su
       propio header simple, sin cambios. -->
       <header
-        class="hidden md:flex items-center justify-between h-16 px-6 bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-30"
+        class="hidden md:flex items-center justify-between h-16 px-8 bg-surface-container/90 backdrop-blur border-b border-outline-variant sticky top-0 z-30"
       >
-        <p class="font-headline-lg text-headline-lg text-on-surface">{{ tituloSeccion }}</p>
+        <p class="font-headline-md text-headline-md text-on-surface">{{ tituloSeccion }}</p>
         <div class="flex items-center gap-2">
           <div
-            class="flex items-center gap-2 px-4 py-1.5 rounded-full"
-            :class="enLinea ? 'bg-primary-container text-on-primary-container' : 'bg-error-container text-on-error-container'"
+            class="flex items-center gap-2 px-3 py-1 rounded-full border shadow-sm"
+            :class="enLinea ? 'bg-primary/10 border-primary/40 text-primary' : 'bg-error/10 border-error/40 text-error'"
             :title="enLinea ? 'Conectado a internet' : 'Sin conexión a internet'"
           >
-            <span class="w-2.5 h-2.5 rounded-full" :class="enLinea ? 'bg-primary-fixed animate-pulse' : 'bg-error'" />
+            <span
+              class="w-2 h-2 rounded-full animate-pulse"
+              :class="enLinea ? 'bg-primary shadow-[0_0_8px_var(--color-primary)]' : 'bg-error shadow-[0_0_8px_var(--color-error)]'"
+            />
             <span class="font-label-md text-label-md">{{ enLinea ? 'En línea' : 'Sin conexión' }}</span>
           </div>
           <button
             v-if="invitado.activo || (auth.estaAutenticado && invitado.tienePendientes)"
             type="button"
-            class="flex items-center gap-2 px-4 py-1.5 rounded-full bg-secondary-container text-on-secondary-container hover:opacity-90 transition-opacity"
+            class="flex items-center gap-2 px-3 py-1 rounded-full border border-secondary/40 bg-secondary/10 text-secondary shadow-sm hover:bg-secondary/20 transition-colors"
             :title="invitado.activo ? 'Inicie sesión para sincronizar lo registrado en este dispositivo' : 'Sincronizar registros pendientes'"
             @click="clicPillSync"
           >
@@ -266,41 +270,45 @@ async function irA(routeName: string) {
               {{ invitado.activo ? `Invitado · ${invitado.pendientes} pend.` : `${invitado.pendientes} sin sincronizar` }}
             </span>
           </button>
-          <button
-            type="button"
+          <!-- size-10 (40px): coherente con el resto de los botones-icono
+          circulares de esta barra — size="icon" del primitivo mide 36px. -->
+          <Button
+            variant="ghost"
+            size="icon"
+            class="size-10 rounded-xl border border-outline text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
             title="Actualizar datos"
             aria-label="Actualizar datos"
-            class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors"
             @click="actualizarDatos"
           >
             <AppIcon name="sync" :size="20" />
-          </button>
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="icon"
+                class="size-10 rounded-xl border border-outline text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
                 title="Notificaciones"
                 aria-label="Notificaciones"
-                class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors"
               >
                 <AppIcon name="notifications" :size="20" />
-              </button>
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" :side-offset="8" class="w-72 p-4">
               <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-2">Notificaciones</p>
               <p class="font-body-md text-body-md text-on-surface-variant text-center py-4">No hay notificaciones nuevas.</p>
             </DropdownMenuContent>
           </DropdownMenu>
-          <div class="h-8 w-px bg-outline-variant" />
+          <div class="h-6 w-px bg-outline-variant" />
           <div class="flex items-center gap-2">
             <div
-              class="w-9 h-9 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-headline-md text-headline-md shrink-0"
+              class="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary-container text-on-primary-container ring-2 ring-primary/20 shadow-sm flex items-center justify-center text-body-md font-bold shrink-0"
             >
               {{ inicialUsuario }}
             </div>
             <div class="hidden lg:block min-w-0">
-              <p class="font-body-md text-body-md text-on-surface font-semibold truncate max-w-[140px]">{{ nombreMostrado }}</p>
-              <p class="font-label-md text-label-md text-on-surface-variant">{{ rolMostrado }}</p>
+              <p class="font-label-md text-label-md text-on-surface truncate max-w-[140px]">{{ nombreMostrado }}</p>
+              <p class="font-label-md text-label-md text-on-surface-variant normal-case tracking-normal">{{ rolMostrado }}</p>
             </div>
           </div>
         </div>

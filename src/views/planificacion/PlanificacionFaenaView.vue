@@ -13,13 +13,14 @@ import { computed, onMounted, ref } from 'vue'
 import autoTable from 'jspdf-autotable'
 import AppShell from '@/components/layout/AppShell.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
-import BaseButton from '@/components/ui/BaseButton.vue'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import Pagination from '@/components/ui/Pagination.vue'
 import AppIcon, { type NombreIcono } from '@/components/ui/AppIcon.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import { Badge, type BadgeVariants } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { usePaginacion } from '@/composables/usePaginacion'
 import { useOrdenable } from '@/composables/useOrdenable'
 import { ApiError } from '@/api/client'
@@ -40,6 +41,7 @@ interface LoteProximo {
   cantidadCabezas: number
   fechaEstimadaFaena: string
   diasRestantes: number
+  urgencia: Urgencia
 }
 
 const cargando = ref(true)
@@ -79,6 +81,7 @@ async function cargar() {
           sinFecha++
           continue
         }
+        const diasRestantes = diasRestantesDe(detalle.fechaEstimadaFaena)
         filas.push({
           estanciaId: captacion.estanciaId,
           estanciaNombre: nombreEstanciaPorId.get(captacion.estanciaId) ?? '—',
@@ -88,7 +91,8 @@ async function cargar() {
           raza: detalle.raza,
           cantidadCabezas: detalle.cantidadCabezas,
           fechaEstimadaFaena: detalle.fechaEstimadaFaena,
-          diasRestantes: diasRestantesDe(detalle.fechaEstimadaFaena),
+          diasRestantes,
+          urgencia: urgenciaDe(diasRestantes),
         })
       }
     }
@@ -186,27 +190,28 @@ function exportarPdf() {
 <template>
   <AppShell>
     <div class="p-stack-md md:p-stack-lg flex flex-col gap-stack-lg w-full">
-      <div
-        class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface-container-lowest p-stack-md rounded-xl shadow-sm border border-outline-variant"
-      >
+      <Card class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-stack-md">
         <div>
           <h1 class="font-headline-lg text-headline-lg text-on-surface font-bold">Planificación de Faena</h1>
           <p class="font-body-md text-body-md text-on-surface-variant mt-1">
             Lotes ordenados por cercanía a su fecha estimada de faena, para saber a qué Captador contactar y cuándo.
           </p>
         </div>
-        <BaseButton
+        <!-- h-11: el size="sm" del primitivo mide 32px (h-8), por debajo del
+        mínimo de 44px que el resto de la app usa para acciones de menor
+        prioridad (ver comentario de tamaños en BaseButton.vue) — se
+        preserva ese piso de accesibilidad con un override. -->
+        <Button
           v-if="!cargando && lotesFiltrados.length > 0"
           variant="secondary"
           size="sm"
-          icon="download"
-          :block="false"
-          class="w-full sm:w-auto"
+          class="h-11 w-full sm:w-auto"
           @click="exportarPdf"
         >
+          <AppIcon name="download" :size="16" />
           Exportar PDF
-        </BaseButton>
-      </div>
+        </Button>
+      </Card>
 
       <div class="relative w-full sm:max-w-md">
         <span class="absolute left-4 top-1/2 -translate-y-1/2 text-outline flex"><AppIcon name="search" :size="20" /></span>
@@ -263,8 +268,8 @@ function exportarPdf() {
         <template #celda-fechaEstimadaFaena="{ item }">{{ formatearFecha(item.fechaEstimadaFaena) }}</template>
 
         <template #acciones="{ item }">
-          <Badge :variant="variantesUrgencia[urgenciaDe(item.diasRestantes)]">
-            <AppIcon :name="iconosUrgencia[urgenciaDe(item.diasRestantes)]" :size="14" />
+          <Badge :variant="variantesUrgencia[item.urgencia]">
+            <AppIcon :name="iconosUrgencia[item.urgencia]" :size="14" />
             {{ textoUrgencia(item.diasRestantes) }}
           </Badge>
         </template>

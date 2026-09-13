@@ -43,7 +43,7 @@ const pesoChart = computed(() => datos.value?.serieMensual.map((s) => ({ mes: s.
       <AlertBanner v-if="errorMensaje" variant="error">{{ errorMensaje }}</AlertBanner>
 
       <div v-if="cargando" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div v-for="n in 3" :key="n" class="h-36 rounded-xl bg-surface-container-lowest border border-outline-variant animate-pulse" />
+        <Card v-for="n in 3" :key="n" class="h-36 animate-pulse" />
       </div>
 
       <template v-else-if="datos">
@@ -71,7 +71,7 @@ const pesoChart = computed(() => datos.value?.serieMensual.map((s) => ({ mes: s.
           </Card>
 
           <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <MonthlyBarChart titulo="Consumo Promedio" :puntos="consumoChart" color="primary" unidad=" kg" />
+            <MonthlyBarChart titulo="Consumo Promedio" :puntos="consumoChart" color="primary" unidad=" kg" variante="area" />
             <MonthlyBarChart titulo="Peso Promedio" :puntos="pesoChart" color="secondary" unidad=" kg" />
           </div>
         </div>

@@ -136,15 +136,15 @@ function irAFila(item: T) {
   border-right: 3px solid transparent;
 }
 .dt-car-up {
-  border-bottom: 4px solid rgb(var(--color-outline-variant));
+  border-bottom: 4px solid var(--color-outline-variant);
 }
 .dt-car-dn {
-  border-top: 4px solid rgb(var(--color-outline-variant));
+  border-top: 4px solid var(--color-outline-variant);
 }
 .dt-car-up.activa {
-  border-bottom-color: rgb(var(--color-primary));
+  border-bottom-color: var(--color-primary);
 }
 .dt-car-dn.activa {
-  border-top-color: rgb(var(--color-primary));
+  border-top-color: var(--color-primary);
 }
 </style>
