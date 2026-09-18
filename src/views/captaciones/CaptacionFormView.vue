@@ -13,11 +13,12 @@ import { ApiError } from '@/api/client'
 import { useToast } from '@/composables/useToast'
 import * as captacionesApi from '@/api/captaciones'
 import * as estanciasApi from '@/api/estancias'
+import * as catalogosApi from '@/api/catalogos'
 import * as invitadoApi from '@/services/invitadoApi'
 import { useInvitadoStore } from '@/stores/invitado'
 import type { CategoriaGanado, TipoManejoAlimentario } from '@/types/enums'
 import { CategoriaGanadoLabels, TipoManejoAlimentarioLabels } from '@/types/enums'
-import type { CreateDetalleLoteGanadoDto, EstanciaDto } from '@/types/dto'
+import type { CreateDetalleLoteGanadoDto, EstanciaDto, RazaDto } from '@/types/dto'
 
 const route = useRoute()
 const router = useRouter()
@@ -56,6 +57,12 @@ const razaOptions: { value: string; label: string }[] = [
   { value: 'Mocho', label: 'Mocho' },
   { value: 'Nelore', label: 'Nelore' },
 ]
+
+// Catálogo real del backend (hoy: Nelore, Brangus, Brahman, Cruza Comercial) —
+// más chico que razaOptions (7 valores). No se reemplaza el select por esto
+// (haría desaparecer opciones que el usuario puede elegir hoy); solo se usa
+// para resolver razaId por nombre cuando hay coincidencia exacta.
+const razasCatalogo = ref<RazaDto[]>([])
 
 // --- Cabecera ---
 const cabecera = reactive({
@@ -190,6 +197,7 @@ function agregarGrupo() {
     sistemaAlimentacion: detalle.sistemaAlimentacion,
     fechaEstimadaFaena: detalle.fechaEstimadaFaena ? new Date(detalle.fechaEstimadaFaena).toISOString() : null,
     notasZootecnicas: detalle.notasZootecnicas || null,
+    razaId: razasCatalogo.value.find((r) => r.nombre.toLowerCase() === detalle.raza?.toLowerCase())?.id ?? null,
   })
   resetDetalle()
 }
@@ -220,6 +228,11 @@ onMounted(() => {
     mostrar('Se restauró un borrador guardado en este dispositivo.', 'info', 6000)
   }
   window.addEventListener('beforeunload', onBeforeUnloadHandler)
+  catalogosApi.listarRazas().then((razas) => {
+    razasCatalogo.value = razas
+  }).catch(() => {
+    // No crítico: si falla, razaId simplemente queda null — raza (string) sigue igual.
+  })
 })
 onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnloadHandler))
 
