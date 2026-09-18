@@ -36,6 +36,35 @@ export interface ProblemDetails {
   detail: string
 }
 
+// --- Catálogos (SIGA-BACKEND: CatalogosController.cs) ---
+
+export interface DepartamentoDto {
+  id: string
+  nombre: string
+}
+
+export interface ProvinciaDto {
+  id: string
+  nombre: string
+  departamentoId: string
+}
+
+export interface MunicipioDto {
+  id: string
+  nombre: string
+  provinciaId: string
+}
+
+export interface RazaDto {
+  id: string
+  nombre: string
+}
+
+export interface ProductoTratamientoDto {
+  id: string
+  nombre: string
+}
+
 // --- Estancias (sección 4.2 / EstanciasController.cs) ---
 
 export interface EstanciaDto {
@@ -54,6 +83,9 @@ export interface EstanciaDto {
   cantidadCaptaciones: number
   totalCabezas: number
   estadoSync: EstadoSync
+  departamentoId: string | null
+  provinciaId: string | null
+  municipioId: string | null
 }
 
 /** Latitud/longitud son obligatorias al crear; el backend no las acepta al editar
@@ -71,6 +103,9 @@ export interface CreateEstanciaDto {
   provincia?: string | null
   municipio?: string | null
   fechaCreacionLocal: string
+  departamentoId?: string | null
+  provinciaId?: string | null
+  municipioId?: string | null
 }
 
 export interface UpdateEstanciaDto {
@@ -83,6 +118,9 @@ export interface UpdateEstanciaDto {
   departamento?: string | null
   provincia?: string | null
   municipio?: string | null
+  departamentoId?: string | null
+  provinciaId?: string | null
+  municipioId?: string | null
 }
 
 // --- Captaciones (sección 4.3 / CaptacionesController.cs + Captaciones/*.cs) ---
@@ -98,6 +136,7 @@ export interface DetalleLoteGanadoDto {
   notasZootecnicas: string | null
   pesoLoteCalculado: number
   diasRestantesFaena: number | null
+  razaId: string | null
 }
 
 export interface CreateDetalleLoteGanadoDto {
@@ -108,6 +147,7 @@ export interface CreateDetalleLoteGanadoDto {
   sistemaAlimentacion: TipoManejoAlimentario
   fechaEstimadaFaena?: string | null
   notasZootecnicas?: string | null
+  razaId?: string | null
 }
 
 export interface CaptacionGanadoDto {
@@ -188,6 +228,7 @@ export interface RegistroSanitarioDto {
   registradoPorNombre: string
   observaciones: string | null
   estadoSync: EstadoSync
+  productoTratamientoId: string | null
 }
 
 export interface CreateRegistroSanitarioDto {
@@ -197,6 +238,7 @@ export interface CreateRegistroSanitarioDto {
   productoTratamiento?: string | null
   observaciones?: string | null
   fechaCreacionLocal: string
+  productoTratamientoId?: string | null
 }
 
 export interface MovimientoGanadoDto {

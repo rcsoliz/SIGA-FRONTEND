@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -11,9 +11,11 @@ import SkeletonForm from '@/components/ui/SkeletonForm.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import { ApiError } from '@/api/client'
 import * as estanciasApi from '@/api/estancias'
+import * as catalogosApi from '@/api/catalogos'
 import * as invitadoApi from '@/services/invitadoApi'
 import { useInvitadoStore } from '@/stores/invitado'
 import { useToast } from '@/composables/useToast'
+import type { DepartamentoDto, MunicipioDto, ProvinciaDto } from '@/types/dto'
 
 const route = useRoute()
 const router = useRouter()
@@ -35,7 +37,50 @@ const form = reactive({
   municipio: '' as string | null,
   latitud: null as number | null,
   longitud: null as number | null,
+  departamentoId: null as string | null,
+  provinciaId: null as string | null,
+  municipioId: null as string | null,
 })
+
+const departamentos = ref<DepartamentoDto[]>([])
+const provincias = ref<ProvinciaDto[]>([])
+const municipios = ref<MunicipioDto[]>([])
+
+const departamentoOptions = computed(() =>
+  departamentos.value.map((d) => ({ value: d.id, label: d.nombre })),
+)
+const provinciaOptions = computed(() =>
+  provincias.value.map((p) => ({ value: p.id, label: p.nombre })),
+)
+const municipioOptions = computed(() =>
+  municipios.value.map((m) => ({ value: m.id, label: m.nombre })),
+)
+
+// Bandera para no resetear provincia/municipio cuando cargarDetalle() setea los
+// tres *Id de un registro existente (ver el await nextTick() en cargarDetalle).
+let cargandoDetalleInicial = true
+
+watch(
+  () => form.departamentoId,
+  async (departamentoId) => {
+    if (!cargandoDetalleInicial) {
+      form.provinciaId = null
+      form.municipioId = null
+      municipios.value = []
+    }
+    provincias.value = departamentoId ? await catalogosApi.listarProvincias(departamentoId) : []
+  },
+)
+
+watch(
+  () => form.provinciaId,
+  async (provinciaId) => {
+    if (!cargandoDetalleInicial) {
+      form.municipioId = null
+    }
+    municipios.value = provinciaId ? await catalogosApi.listarMunicipios(provinciaId) : []
+  },
+)
 
 const cargandoDetalle = ref(esEdicion.value)
 const guardando = ref(false)
@@ -47,7 +92,12 @@ function onCoordenadas(lat: number, lng: number) {
 }
 
 async function cargarDetalle() {
-  if (!id.value) return
+  departamentos.value = await catalogosApi.listarDepartamentos()
+
+  if (!id.value) {
+    cargandoDetalleInicial = false
+    return
+  }
   cargandoDetalle.value = true
   errorMensaje.value = null
   try {
@@ -63,10 +113,16 @@ async function cargarDetalle() {
     form.municipio = e.municipio
     form.latitud = e.latitud
     form.longitud = e.longitud
+
+    form.departamentoId = e.departamentoId
+    form.provinciaId = e.provinciaId
+    form.municipioId = e.municipioId
+    await nextTick() // deja que los watch() de arriba arranquen antes de bajar la bandera
   } catch (error) {
     errorMensaje.value = error instanceof ApiError ? error.message : 'Ocurrió un error inesperado.'
   } finally {
     cargandoDetalle.value = false
+    cargandoDetalleInicial = false
   }
 }
 
@@ -97,6 +153,9 @@ async function guardar() {
         departamento: form.departamento,
         provincia: form.provincia,
         municipio: form.municipio,
+        departamentoId: form.departamentoId,
+        provinciaId: form.provinciaId,
+        municipioId: form.municipioId,
       })
     } else {
       const payload = {
@@ -111,6 +170,9 @@ async function guardar() {
         departamento: form.departamento,
         provincia: form.provincia,
         municipio: form.municipio,
+        departamentoId: form.departamentoId,
+        provinciaId: form.provinciaId,
+        municipioId: form.municipioId,
         fechaCreacionLocal: new Date().toISOString(),
       }
       if (invitado.activo) await invitadoApi.crearEstanciaLocal(payload)
@@ -181,9 +243,9 @@ function cancelar() {
             Ubicación Territorial
           </h3>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-gutter-mobile md:gap-y-6">
-            <FormField v-model="form.departamento" label="Departamento" placeholder="Ej. Santa Cruz" />
-            <FormField v-model="form.provincia" label="Provincia" placeholder="Ej. Andrés Ibáñez" />
-            <FormField v-model="form.municipio" label="Municipio" placeholder="Ej. Santa Cruz de la Sierra" />
+            <FormField v-model="form.departamentoId" type="select" label="Departamento" :options="departamentoOptions" />
+            <FormField v-model="form.provinciaId" type="select" label="Provincia" :options="provinciaOptions" />
+            <FormField v-model="form.municipioId" type="select" label="Municipio" :options="municipioOptions" />
           </div>
         </div>
 
